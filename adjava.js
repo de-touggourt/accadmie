@@ -693,7 +693,7 @@ window.openAddModal = function() {
 
 window.openDirectRegister = function() {
     // 1. الرابط نظيف تماماً بدون أي أكواد
-    const targetUrl = "https://de-touggourt.github.io/service-paiement-nin/";
+    const targetUrl = "https://edu-touggourt.vercel.app/";
     
     // 2. فتح النافذة وحفظ مرجع لها
     const popup = window.open(targetUrl, '_blank');
@@ -3033,6 +3033,7 @@ window.initDevMode = function() {
         });
     }
 };
+
 
 
 
