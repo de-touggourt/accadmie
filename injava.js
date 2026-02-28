@@ -2,7 +2,7 @@
 // 🔒 SYSTEM GUARD V3.0: نظام الأرقام (1=نشط، 2=إدارة، 0=غلق)
 // ============================================================
 
-const LOCAL_VERSION = "1.0.7"; 
+const LOCAL_VERSION = "1.0.8"; 
 let CURRENT_SYSTEM_MODE = 1; // متغير عام لحفظ الحالة
 let isSecretLoginActive = false; // متغير لمنع المقاطعة أثناء الدخول السري
 
@@ -1954,6 +1954,7 @@ window.goToProfessionalCardsMain = function() {
     // الانتقال إلى الصفحة في نفس التبويب (قم بتغيير cards.html إلى اسم صفحتك الفعلي)
     window.location.href = "card2.html"; 
 };
+
 
 
 
