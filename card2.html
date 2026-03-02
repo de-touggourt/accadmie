@@ -16,8 +16,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
  
 
   <script>
@@ -763,6 +763,16 @@ button[style*="background: #6c757d"]:hover { background: #334155 !important; }
 </head>
 <body>
 
+<div id="loginOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f1f5f9; z-index: 99999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
+    <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; font-family: 'Cairo', sans-serif;">
+        <h2 style="margin-bottom: 20px; color: #0f172a;">تسجيل الدخول للإدارة</h2>
+        <input type="password" id="adminPass" placeholder="أدخل كلمة المرور..." style="margin-bottom: 20px; padding: 12px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 16px; outline: none;">
+        <button onclick="verifyAdminLogin()" style="padding: 12px 20px; background: #059669; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px;">دخول</button>
+    </div>
+</div>
+
+<div id="secure-app-root" style="display: none; width: 100%;">
+
     <div id="control-panel" class="no-print">
         <div class="panel-header">
             <h1> نظام إدارة البطاقات المهنية - فضاء المدير</h1>
@@ -898,6 +908,88 @@ button[style*="background: #6c757d"]:hover { background: #334155 !important; }
         </div>
     </div>
 </div>
+
+</div> ```
+
+```html
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAkQz9pB2ZNlYIvdlTRvi4try3D8LLXS4g",
+        authDomain: "databaseemploye.firebaseapp.com",
+        projectId: "databaseemploye",
+        storageBucket: "databaseemploye.firebasestorage.app",
+        messagingSenderId: "408231477466",
+        appId: "1:408231477466:web:e3bf5bd3eaca7cdcd3a5e3",
+        measurementId: "G-DW8QJ5B231"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.verifyAdminLogin = async function() {
+        const passInput = document.getElementById("adminPass").value;
+        const btn = document.querySelector("#loginOverlay button");
+
+        if(!passInput) {
+            return Swal.fire('تنبيه', 'يرجى إدخال كلمة المرور', 'warning');
+        }
+
+        const oldText = btn.innerHTML;
+        btn.innerHTML = 'جاري التحقق...';
+        btn.disabled = true;
+
+        try {
+            const docRef = doc(db, "config", "pass");
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const realPass = docSnap.data().service_pay_adminn; 
+
+                if (String(passInput) === String(realPass)) {
+                    // إذا كانت كلمة المرور صحيحة
+                    const container = document.getElementById("secure-app-root");
+                    const loginOverlay = document.getElementById("loginOverlay");
+                    
+                    loginOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loginOverlay.style.display = "none";
+                        container.style.display = "flex";
+                        container.style.flexDirection = "column";
+                        container.style.alignItems = "center";
+                        
+                        const Toast = Swal.mixin({
+                            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+                        });
+                        Toast.fire({ icon: 'success', title: 'مرحباً بك، تم التحقق بنجاح!' });
+                    }, 500);
+
+                } else {
+                    Swal.fire('خطأ', 'كلمة المرور غير صحيحة', 'error');
+                    document.getElementById("adminPass").value = '';
+                }
+            } else {
+                Swal.fire('خطأ', 'تعذر العثور على ملف الإعدادات في قاعدة البيانات', 'error');
+            }
+        } catch (error) {
+            console.error(error);
+            Swal.fire('خطأ', 'مشكلة في الاتصال: ' + error.message, 'error');
+        } finally {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        }
+    };
+
+    // تشغيل زر الدخول عند الضغط على Enter
+    document.getElementById("adminPass").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            window.verifyAdminLogin();
+        }
+    });
+</script>
     <script>
         // --- 1. خرائط البيانات (Data Maps) ---
         const baladiyaMap = { 
