@@ -19,6 +19,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
  
+
   <script>
 document.addEventListener("DOMContentLoaded", () => {
     // جلب تصريح الدخول من الجلسة
@@ -35,8 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("تم التحقق بنجاح: الدخول مصرح به.");
     }
 });
-</script>
-    
+</script>   
 
 
 
@@ -1161,7 +1161,7 @@ button[style*="background: #6c757d"]:hover { background: #334155 !important; }
                     saveToStorage();
                     renderTable();
                     alert("تم تحميل " + employees.length + " موظف بنجاح!");
-                    
+                    trackAction('excel');
                 } catch (error) {
                     console.error("Error reading file:", error);
                     alert("حدث خطأ أثناء تحليل ملف الإكسل. تأكد من أن الملف سليم وغير تالف.");
@@ -1247,6 +1247,7 @@ function renderTable() {
         saveToStorage();
         renderTable();
     }
+    trackAction('photo');
     closeCropper();
 }
 
@@ -1299,6 +1300,7 @@ function printTemplate(templateId) {
 
     // 3. مهلة أمان (1 ثانية كاملة) لضمان أن المتصفح قد طبق الأحجام الجديدة لكل الموظفين
     setTimeout(() => {
+        trackAction('print');
         window.print();
         
         // إعادة الإعدادات للوضع الطبيعي بعد الطباعة
@@ -1673,6 +1675,7 @@ function printLargeTemplate() {
     renderCards();
     
     setTimeout(() => {
+         trackAction('print');
         window.print();
         
         // إعادة النظام والتنسيقات للوضع العادي (العمودي) تلقائياً بعد الطباعة
@@ -1952,6 +1955,7 @@ await new Promise(r => setTimeout(r, 100));
             : `البطاقات_المهنية_${institutionName}_نموذج_${templateId}.pdf`;
             
         doc.save(fileName);
+        trackAction('pdf');
         alert(`✅ تم حفظ الملف (${fileName}) بنجاح بدقة تامة!`);
 
     } catch (error) {
@@ -2043,6 +2047,71 @@ setInterval(checkVersionUpdate, 5000);
 // فحص فوري عند تحميل الصفحة لأول مرة
 checkVersionUpdate();
 
+
+// --- دالة التتبع الصامت (الإحصائيات) ---
+const STATS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwY5-IhK9pEH21VDkiibh0tG9Evt1lb_bhht9BVAWGgTt39Bus02GtwWD5LgP139F_L-Q/exec"; 
+
+function trackAction(actionType) {
+    const inst = document.getElementById('sel-institution').value;
+    if (!inst) return; 
+
+    const payload = {
+        inst: inst,
+        stage: document.getElementById('sel-stage').value,
+        daaira: document.getElementById('sel-daaira').value,
+        baladiya: document.getElementById('sel-municipality').value,
+        action: actionType
+    };
+
+    fetch(STATS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+    }).catch(err => console.log("تتبع صامت:", err));
+}
+
+// ==========================================
+// --- ميزة المدخل السري للوحة التحكم (المدير) ---
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    let secretClickCount = 0;
+    let secretClickTimer;
+
+  const mainTitle = document.querySelector('.panel-header h1');
+    
+    if (mainTitle) {
+       
+        mainTitle.style.cursor = 'text'; 
+        
+        mainTitle.addEventListener('click', () => {
+            secretClickCount++;
+            
+           
+            clearTimeout(secretClickTimer);
+            secretClickTimer = setTimeout(() => {
+                secretClickCount = 0;
+            }, 1500);
+
+            
+            if (secretClickCount === 10) {
+                secretClickCount = 0; 
+                
+               
+                const password = prompt("🔒 وضع المسؤول: الرجاء إدخال كلمة المرور:");
+                
+                
+               
+                if (password && btoa(password) === "YWRtaW5AU1A1NQ==") {
+                    // فتح صفحة الإحصائيات المستقلة في نافذة جديدة
+                    window.open("dashboard_card.html", "_blank");
+                } else if (password !== null && password !== "") {
+                  
+                    alert("❌ تم رفض الوصول: كلمة المرور غير صحيحة.");
+                }
+            }
+        });
+    }
+});
     </script>
 </body>
 </html>
