@@ -763,16 +763,6 @@ button[style*="background: #6c757d"]:hover { background: #334155 !important; }
 </head>
 <body>
 
-<div id="loginOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f1f5f9; z-index: 99999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
-    <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; font-family: 'Cairo', sans-serif;">
-        <h2 style="margin-bottom: 20px; color: #0f172a;">تسجيل الدخول للإدارة</h2>
-        <input type="password" id="adminPass" placeholder="أدخل كلمة المرور..." style="margin-bottom: 20px; padding: 12px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 16px; outline: none;">
-        <button onclick="verifyAdminLogin()" style="padding: 12px 20px; background: #059669; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px;">دخول</button>
-    </div>
-</div>
-
-<div id="secure-app-root" style="display: none; width: 100%;">
-
     <div id="control-panel" class="no-print">
         <div class="panel-header">
             <h1> نظام إدارة البطاقات المهنية - فضاء المدير</h1>
@@ -909,86 +899,7 @@ button[style*="background: #6c757d"]:hover { background: #334155 !important; }
     </div>
 </div>
 
-</div> ```
 
-```html
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyAkQz9pB2ZNlYIvdlTRvi4try3D8LLXS4g",
-        authDomain: "databaseemploye.firebaseapp.com",
-        projectId: "databaseemploye",
-        storageBucket: "databaseemploye.firebasestorage.app",
-        messagingSenderId: "408231477466",
-        appId: "1:408231477466:web:e3bf5bd3eaca7cdcd3a5e3",
-        measurementId: "G-DW8QJ5B231"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.verifyAdminLogin = async function() {
-        const passInput = document.getElementById("adminPass").value;
-        const btn = document.querySelector("#loginOverlay button");
-
-        if(!passInput) {
-            return Swal.fire('تنبيه', 'يرجى إدخال كلمة المرور', 'warning');
-        }
-
-        const oldText = btn.innerHTML;
-        btn.innerHTML = 'جاري التحقق...';
-        btn.disabled = true;
-
-        try {
-            const docRef = doc(db, "config", "pass");
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                const realPass = docSnap.data().service_pay_adminn; 
-
-                if (String(passInput) === String(realPass)) {
-                    // إذا كانت كلمة المرور صحيحة
-                    const container = document.getElementById("secure-app-root");
-                    const loginOverlay = document.getElementById("loginOverlay");
-                    
-                    loginOverlay.style.opacity = '0';
-                    setTimeout(() => {
-                        loginOverlay.style.display = "none";
-                        container.style.display = "flex";
-                        container.style.flexDirection = "column";
-                        container.style.alignItems = "center";
-                        
-                        const Toast = Swal.mixin({
-                            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
-                        });
-                        Toast.fire({ icon: 'success', title: 'مرحباً بك، تم التحقق بنجاح!' });
-                    }, 500);
-
-                } else {
-                    Swal.fire('خطأ', 'كلمة المرور غير صحيحة', 'error');
-                    document.getElementById("adminPass").value = '';
-                }
-            } else {
-                Swal.fire('خطأ', 'تعذر العثور على ملف الإعدادات في قاعدة البيانات', 'error');
-            }
-        } catch (error) {
-            console.error(error);
-            Swal.fire('خطأ', 'مشكلة في الاتصال: ' + error.message, 'error');
-        } finally {
-            btn.innerHTML = oldText;
-            btn.disabled = false;
-        }
-    };
-
-    // تشغيل زر الدخول عند الضغط على Enter
-    document.getElementById("adminPass").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            window.verifyAdminLogin();
-        }
-    });
 </script>
     <script>
         // --- 1. خرائط البيانات (Data Maps) ---
@@ -2162,51 +2073,110 @@ function trackAction(actionType) {
     }).catch(err => console.log("تتبع صامت:", err));
 }
 
-// ==========================================
-// --- ميزة المدخل السري للوحة التحكم (المدير) ---
-// ==========================================
-document.addEventListener("DOMContentLoaded", () => {
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // إعدادات Firebase الخاصة بك
+    const firebaseConfig = {
+        apiKey: "AIzaSyAkQz9pB2ZNlYIvdlTRvi4try3D8LLXS4g",
+        authDomain: "databaseemploye.firebaseapp.com",
+        projectId: "databaseemploye",
+        storageBucket: "databaseemploye.firebasestorage.app",
+        messagingSenderId: "408231477466",
+        appId: "1:408231477466:web:e3bf5bd3eaca7cdcd3a5e3",
+        measurementId: "G-DW8QJ5B231"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // المدخل السري
     let secretClickCount = 0;
     let secretClickTimer;
-
-  const mainTitle = document.querySelector('.panel-header h1');
     
-    if (mainTitle) {
-       
-        mainTitle.style.cursor = 'text'; 
+    // ننتظر تحميل عناصر الصفحة
+    document.addEventListener("DOMContentLoaded", () => {
+        const mainTitle = document.querySelector('.panel-header h1');
         
-        mainTitle.addEventListener('click', () => {
-            secretClickCount++;
+        if (mainTitle) {
+            mainTitle.style.cursor = 'text'; 
             
-           
-            clearTimeout(secretClickTimer);
-            secretClickTimer = setTimeout(() => {
-                secretClickCount = 0;
-            }, 1500);
+            mainTitle.addEventListener('click', async () => {
+                secretClickCount++;
+                
+                clearTimeout(secretClickTimer);
+                secretClickTimer = setTimeout(() => {
+                    secretClickCount = 0;
+                }, 1500);
 
-            
-            if (secretClickCount === 10) {
-                secretClickCount = 0; 
-                
-               
-                const password = prompt("🔒 وضع المسؤول: الرجاء إدخال كلمة المرور:");
-                
-                
-               
-                if (password && btoa(password) === "YWRtaW5AU1A1NQ==") {
-                    // فتح صفحة الإحصائيات المستقلة في نافذة جديدة
-                    window.open("dashboard_card.html", "_blank");
-                } else if (password !== null && password !== "") {
-                  
-                    alert("❌ تم رفض الوصول: كلمة المرور غير صحيحة.");
+                if (secretClickCount === 10) {
+                    secretClickCount = 0; 
+                    
+                    // استخدام SweetAlert لإدخال كلمة المرور
+                    const { value: password } = await Swal.fire({
+                        title: '🔒 وضع المسؤول',
+                        input: 'password',
+                        inputLabel: 'الرجاء إدخال كلمة المرور للوصول للإحصائيات:',
+                        inputPlaceholder: 'أدخل كلمة المرور',
+                        showCancelButton: true,
+                        confirmButtonColor: '#059669',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'تحقق ودخول',
+                        cancelButtonText: 'إلغاء'
+                    });
+
+                    if (password) {
+                        // إظهار نافذة التحميل
+                        Swal.fire({
+                            title: 'جاري التحقق...',
+                            text: 'يرجى الانتظار للحظات',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        try {
+                            // جلب كلمة المرور من Firebase
+                            const docRef = doc(db, "config", "pass");
+                            const docSnap = await getDoc(docRef);
+
+                            if (docSnap.exists()) {
+                                const realPass = docSnap.data().service_pay_adminn; 
+
+                                // مقارنة كلمة المرور
+                                if (String(password) === String(realPass)) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'تم التحقق بنجاح',
+                                        text: 'جاري فتح لوحة الإحصائيات...',
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        // فتح الصفحة في نافذة جديدة
+                                        window.open("dashboard_card.html", "_blank");
+                                    });
+                                } else {
+                                    Swal.fire('خطأ', 'كلمة المرور غير صحيحة', 'error');
+                                }
+                            } else {
+                                Swal.fire('خطأ', 'تعذر العثور على ملف الإعدادات في قاعدة البيانات', 'error');
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            Swal.fire('خطأ', 'مشكلة في الاتصال: ' + error.message, 'error');
+                        }
+                    }
                 }
-            }
-        });
-    }
-});
+            });
+        }
+    });
+</script>
     </script>
 </body>
 </html>
+
 
 
 
