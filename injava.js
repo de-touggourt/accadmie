@@ -68,18 +68,20 @@ async function performSystemCheck() {
             const container = document.getElementById("interfaceCard");
             const isAdmin = sessionStorage.getItem("admin_bypass") === "true"; // هل المستخدم أدمن؟
 
-            // --- الحالة 0: غلق كلي (صيانة) ---
+           // --- الحالة 0: غلق كلي (صيانة) ---
             if (mode == 0) {
                 
-                // 👇👇👇 التعديل الجديد: التفريق بين المشرف والزائر 👇👇👇
-                if (isAdmin) {
-                    // إذا كان أدمن: أظهر المحتوى وأغلق نافذة التنبيه إن وجدت
+                // 👇 التعديل الجديد: التحقق مما إذا كان المستخدم أدمن أو موظف لديه ترخيص وقام بالدخول
+                const isWhitelistedUserActive = currentEmployeeData && (typeof canEmployeeEdit === 'function') && canEmployeeEdit(currentEmployeeData);
+
+                if (isAdmin || isWhitelistedUserActive) {
+                    // إذا كان أدمن أو موظف مصرح له (ونجح في الدخول): أظهر المحتوى
                     if (container) container.style.display = "block";
                     if (Swal.isVisible() && Swal.getTitle()?.textContent.includes('المنصة مغلقة')) {
                         Swal.close();
                     }
                 } else {
-                    // إذا كان زائراً عادياً: أخفِ المحتوى وأظهر نافذة الغلق
+                    // إذا كان زائراً عادياً: أخفِ المحتوى وأظهر نافذة الغلق مع زر الدخول الاستثنائي
                     if (container) container.style.display = "none";
                     
                     const isClosedPopupVisible = Swal.isVisible() && Swal.getTitle()?.textContent.includes('المنصة مغلقة');
@@ -95,21 +97,17 @@ async function performSystemCheck() {
                                         <br>
                                         <b style="color: #c0392b;">لانتهاء الآجال المحددة</b>.
                                     </p>
+                                    
+                                    <button onclick="promptExceptionalLogin()" style="margin: 10px auto; display: block; background: #f8f9fa; border: 1px dashed #7f8c8d; color: #34495e; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-family: 'Cairo'; font-size: 13px; font-weight: bold; transition: 0.3s;">
+                                        <i class="fas fa-unlock-alt" style="color: #28a745;"></i> دخول استثنائي (للمصرح لهم فقط)
+                                    </button>
+                                    
                                     <div style="margin: 15px auto; width: 60%; height: 1px; background-color: #e0e0e0;"></div>
                                     <p style="font-size: 1em; color: #555;">
                                         لأي استفسار، يرجى التواصل مع
                                         <br>
                                         <span style="color: #7f8c8d; font-size: 0.9em;">مسؤول الرقمنة بمديرية التربية</span>
-                                        <br>
-                                        <strong style="color: #1a5276; font-size: 1.2em; display: block; margin-top: 5px;">
-                                            السيد: جديرة محمد الحبيب
-                                        </strong>
                                     </p>
-                                    <div style="margin-top: 15px; direction: ltr;">
-                                        <a href="tel:0664446349" style="display: inline-block; text-decoration: none; color: #fff; background-color: #2980b9; padding: 8px 25px; border-radius: 50px; font-weight: bold; font-size: 1.2em; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                                            📞 0664 44 63 49
-                                        </a>
-                                    </div>
                                 </div>
                             `,
                             allowOutsideClick: false,
@@ -119,7 +117,7 @@ async function performSystemCheck() {
                         });
                     }
                 }
-                return; // الخروج من الدالة بعد معالجة حالة الغلق
+                return; 
             }
 
             // ... باقي الحالات (1 و 2) تبقى كما هي دون تغيير ...
@@ -678,6 +676,21 @@ async function checkEmployee() {
     
     if (!displayData) {
          return Swal.fire("غير موجود", "الرقم غير مسجل في قاعدة البيانات الأولية", "error");
+    }
+
+// 👇👇 الحماية الجديدة: منع الدخول في حالة الغلق لمن ليس لديه ترخيص 👇👇
+    if (CURRENT_SYSTEM_MODE == 0) {
+        if (typeof canEmployeeEdit === 'function' && !canEmployeeEdit(displayData)) {
+            return Swal.fire({
+                icon: 'error',
+                title: 'عذراً',
+                text: 'المنصة مغلقة حالياً، ولا تملك ترخيصاً استثنائياً للدخول والتعديل.',
+                confirmButtonColor: '#d33'
+            }).then(() => {
+                currentEmployeeData = null; // تفريغ البيانات
+                performSystemCheck(); // إعادة إظهار نافذة الغلق
+            });
+        }
     }
 
     Swal.fire({
@@ -2006,7 +2019,28 @@ window.goToProfessionalCardsMain = function() {
     window.location.href = "card2.html"; 
 };
 
-
+// دالة الدخول الاستثنائي عند غلق المنصة
+window.promptExceptionalLogin = function() {
+    Swal.fire({
+        title: 'تسجيل دخول استثنائي',
+        text: 'أدخل رقم الحساب البريدي (CCP) للتحقق من صلاحية التعديل:',
+        input: 'text',
+        inputPlaceholder: 'رقم CCP بدون مفتاح...',
+        showCancelButton: true,
+        confirmButtonText: 'تحقق ودخول <i class="fas fa-sign-in-alt"></i>',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#28a745'
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            // وضع القيمة في الحقل المخفي وتمريرها لدالة الدخول الأصلية
+            const ccpInp = document.getElementById("ccpInput");
+            if (ccpInp) {
+                ccpInp.value = result.value;
+                checkEmployee(); 
+            }
+        }
+    });
+};
 
 
 
