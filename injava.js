@@ -1637,38 +1637,58 @@ function generateEmployeesTable(data, schoolName) {
 }
 
 // عرض تفاصيل موظف من الجدول (معدلة للحماية في وضع الغلق)
+// عرض تفاصيل موظف من الجدول (تم التعديل لدعم وضع الإدارة والتراخيص الاستثنائية)
 function showEmployeeDetails(ccp) {
-    // 🛑 فحص الوضعية: إذا كان الوضع 2 (إدارة فقط) أو 0 (غلق)، نمنع التعديل
-    
-// الكود المعدل (يسمح لك بالعمل):
-const isAdmin = sessionStorage.getItem("admin_bypass") === "true";
-
-// نمنع التعديل في الحالة 0 أو 2، لكن نستثني المشرف (isAdmin)
-if ((CURRENT_SYSTEM_MODE == 2 || CURRENT_SYSTEM_MODE == 0) && !isAdmin) {
-    Swal.fire({
-        icon: 'info',
-        title: 'وضع القراءة فقط',
-        text: 'لا يمكن تعديل أو تأكيد بيانات الموظفين لأن التسجيل مغلق حالياً.',
-        confirmButtonColor: '#333',
-        confirmButtonText: 'حسناً'
-    });
-    return; 
-}
-
-    // الكود الأصلي يكمل العمل فقط إذا كان الوضع 1 (نشط)
+    // 1. البحث عن الموظف في القائمة المعروضة حالياً
     const emp = window.currentListContext.find(e => e.ccp == ccp || e.empId == ccp);
-    if(emp) {
-        currentEmployeeData = emp;
-        const isConfirmed = (emp.confirmed === true || String(emp.confirmed).toLowerCase() === "true");
+    if (!emp) return;
 
-        if (isConfirmed) {
-            showConfirmedModal(emp);
-        } else {
-            showReviewModal(emp, "admin_review");
-        }
+    // 2. التحقق من الصلاحيات
+    const isSuperAdmin = sessionStorage.getItem("admin_bypass") === "true";
+    let hasPermission = false;
+
+    if (CURRENT_SYSTEM_MODE == 1) {
+        // الحالة 1: النظام نشط للجميع
+        hasPermission = true; 
+    } 
+    else if (isSuperAdmin) {
+        // المطور أو المشرف العام مسموح له دائماً
+        hasPermission = true; 
+    } 
+    else if (CURRENT_SYSTEM_MODE == 2) {
+        // الحالة 2: وضع "بوابة الإدارة". 
+        // بما أن المستخدم وصل إلى هذه القائمة، فهو مدير مؤسسة قام بتسجيل الدخول بنجاح، 
+        // لذا يجب السماح له بفتح الملف، تعديله، وتأكيده.
+        hasPermission = true;
+    } 
+    else if (CURRENT_SYSTEM_MODE == 0 && typeof canEmployeeEdit === 'function' && canEmployeeEdit(emp)) {
+        // الحالة 0: النظام مغلق تماماً، لكن الموظف أو المؤسسة تم إضافتهم 
+        // في "تراخيص التعديل" (القائمة البيضاء) من طرف المشرف.
+        hasPermission = true;
+    }
+
+    // 3. منع الدخول إذا لم تتوفر أي صلاحية
+    if (!hasPermission) {
+        Swal.fire({
+            icon: 'info',
+            title: 'وضع القراءة فقط',
+            text: 'المنصة مغلقة حالياً. لا يمكنك التعديل إلا إذا كان لديك ترخيص استثنائي من الإدارة.',
+            confirmButtonColor: '#333',
+            confirmButtonText: 'حسناً'
+        });
+        return;
+    }
+
+    // 4. إكمال عرض التفاصيل (النافذة المنبثقة)
+    currentEmployeeData = emp;
+    const isConfirmed = (emp.confirmed === true || String(emp.confirmed).toLowerCase() === "true");
+
+    if (isConfirmed) {
+        showConfirmedModal(emp);
+    } else {
+        showReviewModal(emp, "admin_review");
     }
 }
-
 // 5. الطباعة المجمعة للاستمارات (معدلة: تطبع المؤكدين فقط)
 function generateBulkForms(data, schoolName) {
     const confirmedOnly = data.filter(d => d.confirmed === true || String(d.confirmed).toLowerCase() === "true");
