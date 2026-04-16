@@ -1,6 +1,7 @@
 // ============================================================
 // 🔒 SYSTEM GUARD V3.0: نظام الأرقام (1=نشط، 2=إدارة، 0=غلق)
 // ============================================================
+let SYSTEM_EDIT_PERMISSIONS = { schools: [], ccps: [] };
 
 const LOCAL_VERSION = "1.0.9"; 
 let CURRENT_SYSTEM_MODE = 1; // متغير عام لحفظ الحالة
@@ -47,6 +48,13 @@ async function performSystemCheck() {
         // ❌ تم حذف سطر "admin_bypass" من هنا لكي يتم تحديث حالة النظام دائماً حتى للمشرف
 
         const docSnap = await db.collection("config").doc("pass").get();
+        const permSnap = await db.collection("config").doc("edit_permissions").get(); // سطر جديد لجلب التراخيص
+        
+        if (permSnap.exists) {
+            SYSTEM_EDIT_PERMISSIONS = permSnap.data();
+        }
+
+       
         
         if (docSnap.exists) {
             const data = docSnap.data();
@@ -520,6 +528,29 @@ function getCurrentDateTime() {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
+
+const canEmployeeEdit = (empData) => {
+    // إذا كان النظام نشط بالكامل (حالة 1)، الجميع يمكنه التعديل
+    if (CURRENT_SYSTEM_MODE == 1) return true;
+    
+    // إذا كان هناك صلاحيات مسجلة
+    if (SYSTEM_EDIT_PERMISSIONS) {
+        // فحص حسب المؤسسة
+        if (SYSTEM_EDIT_PERMISSIONS.schools && SYSTEM_EDIT_PERMISSIONS.schools.includes(empData.schoolName)) {
+            return true;
+        }
+        // فحص حسب الـ CCP (مع تنظيف الأصفار البادئة لضمان التطابق)
+        const cleanEmpCcp = empData.ccp ? String(empData.ccp).replace(/^0+/, '') : '';
+        if (SYSTEM_EDIT_PERMISSIONS.ccps && SYSTEM_EDIT_PERMISSIONS.ccps.includes(cleanEmpCcp)) {
+            return true;
+        }
+    }
+    // غير مصرح له
+    return false;
+};
+
+
+
 let currentEmployeeData = null;
 
 // ======================== (معدل) دالة التحقق والحقن الآمن ========================
@@ -725,7 +756,7 @@ function showReviewModal(data, context) {
     title: context === 'new' ? 'تم التسجيل بنجاح' : 'مراجعة البيانات',
     html: htmlTable + '<p style="color:#FF0000; font-size:13px; margin-top:10px; font-weight: bold;">في حالة التعديل بعد تأكيد المعلومات ، يرجى مراجعة وتأكيد صحة المعلومات مرة ثانية لطباعة الإستمارة المعدلة</p>',
     icon: 'info',
-    showDenyButton: true,
+    showDenyButton: canEmployeeEdit(data),
     showCancelButton: true,
     confirmButtonText: '✅ تأكيد المعلومات',
     denyButtonText: '✏️ تعديل المعلومات',
@@ -838,7 +869,7 @@ function showConfirmedModal(data) {
   Swal.fire({
     title: 'الملف الشخصي للموظف',
     html: htmlTable,
-    showDenyButton: true,
+    showDenyButton: canEmployeeEdit(data),
     showCancelButton: true,
     confirmButtonText: '🖨️ طباعة الاستمارة',
     denyButtonText: '✏️ تعديل المعلومات',
