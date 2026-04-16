@@ -681,6 +681,7 @@ async function checkEmployee() {
 // 👇👇 الحماية الجديدة: منع الدخول في حالة الغلق لمن ليس لديه ترخيص 👇👇
     if (CURRENT_SYSTEM_MODE == 0) {
         if (typeof canEmployeeEdit === 'function' && !canEmployeeEdit(displayData)) {
+isSecretLoginActive = false;
             return Swal.fire({
                 icon: 'error',
                 title: 'عذراً',
@@ -2019,25 +2020,32 @@ window.goToProfessionalCardsMain = function() {
     window.location.href = "card2.html"; 
 };
 
-// دالة الدخول الاستثنائي عند غلق المنصة
 window.promptExceptionalLogin = function() {
+    // 1. تفعيل وضعية الدخول لمنع دالة الفحص من إغلاق الواجهة
+    isSecretLoginActive = true; 
+
     Swal.fire({
         title: 'تسجيل دخول استثنائي',
-        text: 'أدخل رقم الحساب البريدي (CCP) للتحقق من صلاحية التعديل:',
+        text: 'أدخل رقم الحساب البريدي (CCP) للتحقق من الصلاحية:',
         input: 'text',
         inputPlaceholder: 'رقم CCP بدون مفتاح...',
         showCancelButton: true,
-        confirmButtonText: 'تحقق ودخول <i class="fas fa-sign-in-alt"></i>',
+        confirmButtonText: 'تحقق ودخول',
         cancelButtonText: 'إلغاء',
-        confirmButtonColor: '#28a745'
+        confirmButtonColor: '#28a745',
+        allowOutsideClick: false // لمنع الإغلاق العرضي
     }).then((result) => {
         if (result.isConfirmed && result.value) {
-            // وضع القيمة في الحقل المخفي وتمريرها لدالة الدخول الأصلية
             const ccpInp = document.getElementById("ccpInput");
             if (ccpInp) {
                 ccpInp.value = result.value;
+                // استدعاء دالة التحقق الأصلية
                 checkEmployee(); 
             }
+        } else {
+            // 2. إذا ألغى المستخدم العملية، نعيد تفعيل الفحص الدوري
+            isSecretLoginActive = false;
+            performSystemCheck(); 
         }
     });
 };
