@@ -149,6 +149,8 @@ const SECURE_DASHBOARD_HTML = `
 
     <button id="firebaseManagerBtn" class="btn" style="background-color:#e63946; color:white; display:none;" onclick="window.openFirebaseManager()">قاعدة البيانات<i class="fas fa-server"></i></button>
 
+<button class="btn" style="background-color:#17a2b8; color:white;" onclick="window.openPermissionsModal()">تراخيص التعديل <i class="fas fa-unlock-alt"></i></button>
+
     <div id="secretStatusPanel" class="status-toggle-container" style="display:none; align-items:center; gap:10px; background:#fff; padding:5px 15px; border-radius:10px; border:1px solid #2575fc;">
         <span style="font-weight:bold; font-size:13px;">حالة المنصة:</span>
         <select id="systemStatusSelect" onchange="window.toggleSystemStatus(this.value)" style="padding:5px; border-radius:5px; border:1px solid #2575fc; font-weight:bold;">
@@ -157,6 +159,7 @@ const SECURE_DASHBOARD_HTML = `
             <option value="0">🔴 مغلقة</option>
         </select>
     </div>
+
 
 </div>
 
@@ -3032,7 +3035,113 @@ window.initDevMode = function() {
             }
         });
     }
+
+
+// ==========================================
+// 🔐 نظام تراخيص التعديل الاستثنائية
+// ==========================================
+
+window.openPermissionsModal = async function() {
+    Swal.fire({
+        title: 'جاري جلب التراخيص...',
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // جلب الإعدادات الحالية من Firestore
+        const docRef = doc(db, "config", "edit_permissions");
+        const docSnap = await getDoc(docRef);
+        
+        let allowedSchools = [];
+        let allowedCCPs = [];
+        
+        if (docSnap.exists()) {
+            allowedSchools = docSnap.data().schools || [];
+            allowedCCPs = docSnap.data().ccps || [];
+        }
+
+        // استخراج كل المؤسسات لإنشاء القائمة المنسدلة
+        let allSchoolsList = [];
+        for (let bal in primarySchoolsByBaladiya) {
+            primarySchoolsByBaladiya[bal].forEach(s => allSchoolsList.push(s.name));
+        }
+        for (let daaira in institutionsByDaaira) {
+            if(institutionsByDaaira[daaira]["متوسط"]) institutionsByDaaira[daaira]["متوسط"].forEach(s => allSchoolsList.push(s.name));
+            if(institutionsByDaaira[daaira]["ثانوي"]) institutionsByDaaira[daaira]["ثانوي"].forEach(s => allSchoolsList.push(s.name));
+        }
+        allSchoolsList.push("مديرية التربية لولاية توقرت");
+        allSchoolsList = [...new Set(allSchoolsList)].sort(); // إزالة التكرار وترتيب
+
+        const schoolsOptions = allSchoolsList.map(s => {
+            const isSelected = allowedSchools.includes(s) ? 'selected' : '';
+            return `<option value="${s}" ${isSelected}>${s}</option>`;
+        }).join('');
+
+        const modalHtml = `
+            <div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl;">
+                <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
+                    <i class="fas fa-info-circle"></i> الموظفون التابعون لهذه المؤسسات أو أصحاب أرقام CCP المدرجة هنا سيتمكنون من تعديل بياناتهم حتى لو كانت المنصة مغلقة.
+                </div>
+                
+                <label style="font-weight: bold; color: #2c3e50;">1. السماح حسب المؤسسة:</label>
+                <select id="perm_schools" multiple style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px; font-family: 'Cairo';">
+                    ${schoolsOptions}
+                </select>
+                <small style="color: #6c757d;">* اضغط مطولاً على CTRL لاختيار أكثر من مؤسسة.</small>
+                
+                <hr style="margin: 20px 0; border-top: 1px solid #eee;">
+                
+                <label style="font-weight: bold; color: #2c3e50;">2. السماح حسب رقم الحساب (CCP):</label>
+                <textarea id="perm_ccps" placeholder="ضع أرقام CCP هنا (رقم في كل سطر أو مفصولة بفاصلة) ... يمكنك النسخ واللصق مباشرة من Excel" style="width: 100%; height: 120px; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px; direction: ltr; font-family: monospace;">${allowedCCPs.join('\n')}</textarea>
+            </div>
+        `;
+
+        Swal.fire({
+            title: 'تراخيص التعديل الاستثنائية',
+            html: modalHtml,
+            width: '600px',
+            showCancelButton: true,
+            confirmButtonText: 'حفظ التراخيص <i class="fas fa-save"></i>',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#28a745',
+            preConfirm: () => {
+                const selectedSchools = Array.from(document.getElementById('perm_schools').selectedOptions).map(o => o.value);
+                
+                // معالجة الأرقام: تنظيف من الفراغات، تحويل الفواصل إلى أسطر، استخراج الأرقام فقط، وإزالة الأصفار الزائدة من البداية
+                const rawCcps = document.getElementById('perm_ccps').value;
+                const ccpArray = rawCcps.replace(/,/g, '\n').split('\n')
+                    .map(ccp => ccp.replace(/\D/g, '').replace(/^0+/, '')) // إبقاء الأرقام فقط وحذف الأصفار البادئة
+                    .filter(ccp => ccp.length > 0);
+                
+                return {
+                    schools: selectedSchools,
+                    ccps: [...new Set(ccpArray)] // إزالة التكرار
+                };
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                window.savePermissions(result.value);
+            }
+        });
+
+    } catch (error) {
+        Swal.fire('خطأ', 'فشل الاتصال بقاعدة البيانات: ' + error.message, 'error');
+    }
 };
+
+window.savePermissions = async function(data) {
+    Swal.fire({ title: 'جاري الحفظ...', didOpen: () => Swal.showLoading() });
+    try {
+        const docRef = doc(db, "config", "edit_permissions");
+        await setDoc(docRef, data); // إنشاء أو تحديث
+        Swal.fire('تم الحفظ', 'تم تحديث التراخيص بنجاح.', 'success');
+    } catch (error) {
+        Swal.fire('خطأ', 'فشل حفظ التراخيص: ' + error.message, 'error');
+    }
+
+};
+
+
 
 
 
