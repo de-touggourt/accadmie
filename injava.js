@@ -68,38 +68,58 @@ async function performSystemCheck() {
             const container = document.getElementById("interfaceCard");
             const isAdmin = sessionStorage.getItem("admin_bypass") === "true"; // هل المستخدم أدمن؟
 
-          // داخل دالة performSystemCheck
+            // --- الحالة 0: غلق كلي (صيانة) ---
             if (mode == 0) {
-                const isWhitelistedActive = currentEmployeeData && (typeof canEmployeeEdit === 'function' && canEmployeeEdit(currentEmployeeData));
-
-                // 👇 التعديل هنا: أضفنا window.exceptionalLoginGranted للشرط
-                if (isAdmin || isWhitelistedActive || window.exceptionalLoginGranted) {
+                
+                // 👇👇👇 التعديل الجديد: التفريق بين المشرف والزائر 👇👇👇
+                if (isAdmin) {
+                    // إذا كان أدمن: أظهر المحتوى وأغلق نافذة التنبيه إن وجدت
                     if (container) container.style.display = "block";
-                    if (Swal.isVisible() && Swal.getTitle()?.textContent.includes('المنصة مغلقة')) Swal.close();
+                    if (Swal.isVisible() && Swal.getTitle()?.textContent.includes('المنصة مغلقة')) {
+                        Swal.close();
+                    }
                 } else {
+                    // إذا كان زائراً عادياً: أخفِ المحتوى وأظهر نافذة الغلق
                     if (container) container.style.display = "none";
                     
-                    const isPopupVisible = Swal.isVisible() && (Swal.getTitle()?.textContent.includes('المنصة مغلقة') || Swal.getTitle()?.textContent.includes('بوابة الوصول'));
+                    const isClosedPopupVisible = Swal.isVisible() && Swal.getTitle()?.textContent.includes('المنصة مغلقة');
 
-                    if (!isPopupVisible) {
+                    if (!isClosedPopupVisible) {
                         Swal.fire({
                             icon: 'warning',
-                            title: 'المنصة مغلقة',
+                            title: '<span style="cursor: default; user-select: none;" onclick="handleSecretClick()">المنصة مغلقة</span>',
                             html: `
-                                <div style="text-align: center; direction: rtl; font-family: 'Cairo';">
-                                    <p style="color: #c0392b; font-weight: bold;">انتهت الآجال المحددة للتعديل.</p>
-                                    <button onclick="promptExceptionalLogin()" style="margin-top: 15px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-family: 'Cairo';">
-                                        <i class="fas fa-unlock-alt"></i> تسجيل دخول استثنائي
-                                    </button>
+                                <div style="text-align: center; direction: rtl; line-height: 1.8;">
+                                    <p style="margin-bottom: 15px; font-size: 1.1em; color: #34495e;">
+                                        ننهي إلى علمكم أن المنصة مغلقة حالياً نظراً
+                                        <br>
+                                        <b style="color: #c0392b;">لانتهاء الآجال المحددة</b>.
+                                    </p>
+                                    <div style="margin: 15px auto; width: 60%; height: 1px; background-color: #e0e0e0;"></div>
+                                    <p style="font-size: 1em; color: #555;">
+                                        لأي استفسار، يرجى التواصل مع
+                                        <br>
+                                        <span style="color: #7f8c8d; font-size: 0.9em;">مسؤول الرقمنة بمديرية التربية</span>
+                                        <br>
+                                        <strong style="color: #1a5276; font-size: 1.2em; display: block; margin-top: 5px;">
+                                            السيد: جديرة محمد الحبيب
+                                        </strong>
+                                    </p>
+                                    <div style="margin-top: 15px; direction: ltr;">
+                                        <a href="tel:0664446349" style="display: inline-block; text-decoration: none; color: #fff; background-color: #2980b9; padding: 8px 25px; border-radius: 50px; font-weight: bold; font-size: 1.2em; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                            📞 0664 44 63 49
+                                        </a>
+                                    </div>
                                 </div>
                             `,
                             allowOutsideClick: false,
+                            allowEscapeKey: false,
                             showConfirmButton: false,
-                            width: '400px'
+                            width: '450px'
                         });
                     }
                 }
-                return;
+                return; // الخروج من الدالة بعد معالجة حالة الغلق
             }
 
             // ... باقي الحالات (1 و 2) تبقى كما هي دون تغيير ...
@@ -622,11 +642,7 @@ async function checkEmployee() {
   const rawInput = document.getElementById("ccpInput").value.trim();
   const cleanInput = rawInput.replace(/\D/g, ''); 
 
-  // 1️⃣ فحص طول الرقم (وإعادة القفل إذا كان خاطئاً)
-  if (cleanInput.length < 3) {
-      window.exceptionalLoginGranted = false; // سحب الإذن
-      return Swal.fire("تنبيه", "رقم الحساب البريدي الجاري CCP غير صحيح", "warning").then(() => performSystemCheck());
-  }
+  if (cleanInput.length < 3) return Swal.fire("تنبيه", "رقم الحساب البريدي الجاري CCP غير صحيح", "warning");
 
   Swal.fire({ title: 'جاري التحقق...', didOpen:()=>Swal.showLoading(), allowOutsideClick: false });
 
@@ -660,35 +676,9 @@ async function checkEmployee() {
 
     const displayData = result.result === "exists" ? result.data : fbData;
     
-    // 2️⃣ في حال كان الرقم غير مسجل إطلاقاً (طرد وإعادة القفل)
     if (!displayData) {
-         window.exceptionalLoginGranted = false; // سحب الإذن
-         return Swal.fire("غير موجود", "الرقم غير مسجل في قاعدة البيانات الأولية", "error").then(() => performSystemCheck());
+         return Swal.fire("غير موجود", "الرقم غير مسجل في قاعدة البيانات الأولية", "error");
     }
-
-    // 3️⃣ الحماية الجديدة: منع الدخول في حالة الغلق لمن ليس لديه ترخيص
-    if (CURRENT_SYSTEM_MODE == 0) {
-        if (typeof canEmployeeEdit === 'function' && !canEmployeeEdit(displayData)) {
-            window.exceptionalLoginGranted = false; // 👈 سحب إذن فتح الواجهة فوراً
-            return Swal.fire({
-                icon: 'error',
-                title: 'دخول مرفوض',
-                text: 'رقم الحساب الخاص بك غير مسجل في قائمة التراخيص الاستثنائية للتعديل.',
-                confirmButtonColor: '#d33'
-            }).then(() => {
-                currentEmployeeData = null; // تفريغ البيانات
-                performSystemCheck(); // 👈 إعادة إظهار نافذة الغلق
-            });
-        }
-    }
-
-    // 4️⃣ في حال النجاح (الموظف مرخص له)
-    isSecretLoginActive = false; // تحرير النظام
-    currentEmployeeData = displayData;
-    
-    // إخفاء الواجهة الخلفية للرقم السري (إن كانت موجودة) حتى لا تغطي على استمارة البيانات
-    const overlay = document.getElementById("systemLoginOverlay");
-    if(overlay) overlay.style.display = 'none';
 
     Swal.fire({
       title: 'تم تسجيل الدخول بنجاح',
@@ -717,24 +707,20 @@ async function checkEmployee() {
           if (isConfirmed) {
             showConfirmedModal(d);
           } else {
-            showReviewModal(d, "exceptional_entry"); // عرض استمارة المراجعة
+            showReviewModal(d, "unconfirmed_duplicate");
           }
         } else {
           fillForm(fbData, null);
           document.getElementById("ccpField").value = finalCCP;
         }
       } else {
-        // إذا ضغط المستخدم على خروج بعد نجاح الدخول، نقوم بإغلاق النظام وراءه
-        window.exceptionalLoginGranted = false; 
         resetInterface();
       }
     });
 
   } catch (e) { 
     console.error(e);
-    // 5️⃣ في حالة فشل الاتصال بالإنترنت (طرد وإعادة القفل)
-    window.exceptionalLoginGranted = false; 
-    Swal.fire("خطأ", "فشل الاتصال، يرجى المحاولة لاحقاً", "error").then(() => performSystemCheck()); 
+    Swal.fire("خطأ", "فشل الاتصال", "error"); 
   }
 }
 
@@ -1651,58 +1637,38 @@ function generateEmployeesTable(data, schoolName) {
 }
 
 // عرض تفاصيل موظف من الجدول (معدلة للحماية في وضع الغلق)
-// عرض تفاصيل موظف من الجدول (تم التعديل لدعم وضع الإدارة والتراخيص الاستثنائية)
 function showEmployeeDetails(ccp) {
-    // 1. البحث عن الموظف في القائمة المعروضة حالياً
+    // 🛑 فحص الوضعية: إذا كان الوضع 2 (إدارة فقط) أو 0 (غلق)، نمنع التعديل
+    
+// الكود المعدل (يسمح لك بالعمل):
+const isAdmin = sessionStorage.getItem("admin_bypass") === "true";
+
+// نمنع التعديل في الحالة 0 أو 2، لكن نستثني المشرف (isAdmin)
+if ((CURRENT_SYSTEM_MODE == 2 || CURRENT_SYSTEM_MODE == 0) && !isAdmin) {
+    Swal.fire({
+        icon: 'info',
+        title: 'وضع القراءة فقط',
+        text: 'لا يمكن تعديل أو تأكيد بيانات الموظفين لأن التسجيل مغلق حالياً.',
+        confirmButtonColor: '#333',
+        confirmButtonText: 'حسناً'
+    });
+    return; 
+}
+
+    // الكود الأصلي يكمل العمل فقط إذا كان الوضع 1 (نشط)
     const emp = window.currentListContext.find(e => e.ccp == ccp || e.empId == ccp);
-    if (!emp) return;
+    if(emp) {
+        currentEmployeeData = emp;
+        const isConfirmed = (emp.confirmed === true || String(emp.confirmed).toLowerCase() === "true");
 
-    // 2. التحقق من الصلاحيات
-    const isSuperAdmin = sessionStorage.getItem("admin_bypass") === "true";
-    let hasPermission = false;
-
-    if (CURRENT_SYSTEM_MODE == 1) {
-        // الحالة 1: النظام نشط للجميع
-        hasPermission = true; 
-    } 
-    else if (isSuperAdmin) {
-        // المطور أو المشرف العام مسموح له دائماً
-        hasPermission = true; 
-    } 
-    else if (CURRENT_SYSTEM_MODE == 2) {
-        // الحالة 2: وضع "بوابة الإدارة". 
-        // بما أن المستخدم وصل إلى هذه القائمة، فهو مدير مؤسسة قام بتسجيل الدخول بنجاح، 
-        // لذا يجب السماح له بفتح الملف، تعديله، وتأكيده.
-        hasPermission = true;
-    } 
-    else if (CURRENT_SYSTEM_MODE == 0 && typeof canEmployeeEdit === 'function' && canEmployeeEdit(emp)) {
-        // الحالة 0: النظام مغلق تماماً، لكن الموظف أو المؤسسة تم إضافتهم 
-        // في "تراخيص التعديل" (القائمة البيضاء) من طرف المشرف.
-        hasPermission = true;
-    }
-
-    // 3. منع الدخول إذا لم تتوفر أي صلاحية
-    if (!hasPermission) {
-        Swal.fire({
-            icon: 'info',
-            title: 'وضع القراءة فقط',
-            text: 'المنصة مغلقة حالياً. لا يمكنك التعديل إلا إذا كان لديك ترخيص استثنائي من الإدارة.',
-            confirmButtonColor: '#333',
-            confirmButtonText: 'حسناً'
-        });
-        return;
-    }
-
-    // 4. إكمال عرض التفاصيل (النافذة المنبثقة)
-    currentEmployeeData = emp;
-    const isConfirmed = (emp.confirmed === true || String(emp.confirmed).toLowerCase() === "true");
-
-    if (isConfirmed) {
-        showConfirmedModal(emp);
-    } else {
-        showReviewModal(emp, "admin_review");
+        if (isConfirmed) {
+            showConfirmedModal(emp);
+        } else {
+            showReviewModal(emp, "admin_review");
+        }
     }
 }
+
 // 5. الطباعة المجمعة للاستمارات (معدلة: تطبع المؤكدين فقط)
 function generateBulkForms(data, schoolName) {
     const confirmedOnly = data.filter(d => d.confirmed === true || String(d.confirmed).toLowerCase() === "true");
@@ -2020,60 +1986,6 @@ window.goToProfessionalCardsMain = function() {
     window.location.href = "card2.html"; 
 };
 
-window.promptExceptionalLogin = async function() {
-    isSecretLoginActive = true; // إيقاف الفحص الدوري مؤقتاً
-
-    try {
-        // جلب الرقم السري للمنصة
-        const docSnap = await db.collection("config").doc("pass").get();
-        if (!docSnap.exists) throw new Error("تعذر جلب إعدادات الأمان");
-        const correctSystemPass = docSnap.data().value;
-
-        // طلب الرقم السري
-        const { value: enteredPass } = await Swal.fire({
-            title: 'بوابة الوصول الاستثنائي',
-            input: 'password',
-            inputLabel: 'أدخل الرقم السري للمنصة لفتح الواجهة',
-            inputPlaceholder: 'الرقم السري...',
-            showCancelButton: true,
-            confirmButtonText: 'فتح الواجهة <i class="fas fa-unlock"></i>',
-            cancelButtonText: 'إلغاء',
-            allowOutsideClick: false
-        });
-
-        if (!enteredPass) {
-            isSecretLoginActive = false;
-            return performSystemCheck();
-        }
-
-        if (String(enteredPass) === String(correctSystemPass)) {
-            // الرقم السري صحيح: نعطي الإذن بفتح الواجهة الرئيسية مؤقتاً
-            window.exceptionalLoginGranted = true; 
-            isSecretLoginActive = false; // إعادة تشغيل الفحص
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'تم فتح الواجهة',
-                text: 'يمكنك الآن إدخال رقم الحساب (CCP) في الحقل المخصص.',
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                performSystemCheck(); // تحديث النظام لإظهار الواجهة
-            });
-
-        } else {
-            Swal.fire('خطأ', 'الرقم السري للنظام غير صحيح!', 'error').then(() => {
-                isSecretLoginActive = false;
-                performSystemCheck();
-            });
-        }
-    } catch (error) {
-        console.error(error);
-        Swal.fire('خطأ', 'حدث خلل في الاتصال: ' + error.message, 'error');
-        isSecretLoginActive = false;
-        performSystemCheck();
-    }
-};
 
 
 
