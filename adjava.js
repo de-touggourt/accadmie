@@ -3037,9 +3037,8 @@ window.initDevMode = function() {
     }
 
 };
-
 // ==========================================
-// 🔐 نظام تراخيص التعديل الاستثنائية
+// 🔐 نظام تراخيص التعديل الاستثنائية (المطور)
 // ==========================================
 
 window.openPermissionsModal = async function() {
@@ -3073,10 +3072,36 @@ window.openPermissionsModal = async function() {
         allSchoolsList.push("مديرية التربية لولاية توقرت");
         allSchoolsList = [...new Set(allSchoolsList)].sort(); // إزالة التكرار وترتيب
 
+        // تجهيز خيارات المؤسسات
         const schoolsOptions = allSchoolsList.map(s => {
             const isSelected = allowedSchools.includes(s) ? 'selected' : '';
             return `<option value="${s}" ${isSelected}>${s}</option>`;
         }).join('');
+
+        // تجهيز جدول الموظفين المسموح لهم (ربط الـ CCP ببياناتهم)
+        let permittedEmployeesHtml = '';
+        allowedCCPs.forEach(ccp => {
+            // البحث عن الموظف في allData (مع تنظيف الأصفار للمطابقة الدقيقة)
+            const cleanTargetCcp = String(ccp).trim().replace(/^0+/, '');
+            const emp = allData.find(e => String(e.ccp).trim().replace(/^0+/, '') === cleanTargetCcp);
+            
+            const name = emp ? `${emp.fmn} ${emp.frn}` : '<span style="color:red;">غير مسجل في الجدول</span>';
+            const school = emp ? emp.schoolName : '---';
+            const searchKey = `${ccp} ${emp ? emp.fmn : ''} ${emp ? emp.frn : ''}`.toLowerCase();
+
+            permittedEmployeesHtml += `
+                <tr class="perm-ccp-row" data-search="${searchKey}" data-ccp="${ccp}" style="border-bottom:1px solid #dee2e6;">
+                    <td style="padding:8px; font-weight:bold; color:#d63384;" dir="ltr">${ccp}</td>
+                    <td style="padding:8px;">${name}</td>
+                    <td style="padding:8px; font-size:11px;">${school}</td>
+                    <td style="padding:8px; text-align:center;">
+                        <button type="button" onclick="window.removePermittedCcp(this)" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;" title="إلغاء الترخيص">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
 
         const modalHtml = `
             <div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl;">
@@ -3084,39 +3109,82 @@ window.openPermissionsModal = async function() {
                     <i class="fas fa-info-circle"></i> الموظفون التابعون لهذه المؤسسات أو أصحاب أرقام CCP المدرجة هنا سيتمكنون من تعديل بياناتهم حتى لو كانت المنصة مغلقة.
                 </div>
                 
-                <label style="font-weight: bold; color: #2c3e50;">1. السماح حسب المؤسسة:</label>
-                <select id="perm_schools" multiple style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px; font-family: 'Cairo';">
-                    ${schoolsOptions}
-                </select>
-                <small style="color: #6c757d;">* اضغط مطولاً على CTRL لاختيار أكثر من مؤسسة.</small>
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
+                    <label style="font-weight: bold; color: #2c3e50; display:block; margin-bottom:8px;">1. السماح حسب المؤسسة:</label>
+                    <div style="position:relative; margin-bottom:8px;">
+                        <i class="fas fa-search" style="position:absolute; top:50%; right:10px; transform:translateY(-50%); color:#aaa;"></i>
+                        <input type="text" id="search_schools_input" onkeyup="window.filterSchoolsList()" placeholder="ابحث عن اسم المؤسسة..." style="width:100%; padding:8px 35px 8px 10px; border:1px solid #ced4da; border-radius:5px; font-family:'Cairo';">
+                    </div>
+                    <select id="perm_schools" multiple style="width: 100%; height: 130px; padding: 5px; border: 1px solid #ced4da; border-radius: 5px; font-family: 'Cairo'; font-size:13px;">
+                        ${schoolsOptions}
+                    </select>
+                    <small style="color: #6c757d; display:block; margin-top:5px;">* اضغط مطولاً على CTRL لاختيار أكثر من مؤسسة.</small>
+                </div>
                 
-                <hr style="margin: 20px 0; border-top: 1px solid #eee;">
-                
-                <label style="font-weight: bold; color: #2c3e50;">2. السماح حسب رقم الحساب (CCP):</label>
-                <textarea id="perm_ccps" placeholder="ضع أرقام CCP هنا (رقم في كل سطر أو مفصولة بفاصلة) ... يمكنك النسخ واللصق مباشرة من Excel" style="width: 100%; height: 120px; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px; direction: ltr; font-family: monospace;">${allowedCCPs.join('\n')}</textarea>
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #dee2e6; margin-top:15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <label style="font-weight: bold; color: #2c3e50; margin:0;">2. السماح حسب الموظف (CCP):</label>
+                        <button type="button" onclick="window.exportPermittedExcel()" class="btn" style="background:#198754; color:white; padding:5px 10px; font-size:12px;">
+                            تحميل Excel <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
+
+                    <div style="border:1px solid #ced4da; border-radius:5px; background:#fff; overflow:hidden;">
+                        <div style="padding:8px; background:#e9ecef; border-bottom:1px solid #ced4da;">
+                            <input type="text" id="search_ccp_input" onkeyup="window.filterPermittedTable()" placeholder="ابحث بالاسم أو اللقب أو رقم الحساب..." style="width:100%; padding:6px; border:1px solid #ced4da; border-radius:4px; font-family:'Cairo'; font-size:12px;">
+                        </div>
+                        <div style="max-height:150px; overflow-y:auto;">
+                            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right;">
+                                <thead style="position:sticky; top:0; background:#f1f3f5; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
+                                    <tr>
+                                        <th style="padding:8px;">CCP</th>
+                                        <th style="padding:8px;">الاسم واللقب</th>
+                                        <th style="padding:8px;">مؤسسة العمل</th>
+                                        <th style="padding:8px; text-align:center;">إلغاء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="permitted_table_body">
+                                    ${permittedEmployeesHtml || '<tr><td colspan="4" style="text-align:center; padding:15px;">لا يوجد موظفين مستثنين حالياً</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <label style="font-size:12px; font-weight:bold; margin-top:15px; display:block;">إضافة تراخيص جديدة (نسخ ولصق):</label>
+                    <textarea id="perm_ccps_add" placeholder="الصق أرقام CCP هنا... (يُمكنك النسخ من Excel مباشرة، رقم في كل سطر)" style="width: 100%; height: 60px; padding: 8px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px; direction: ltr; font-family: monospace;"></textarea>
+                </div>
             </div>
         `;
 
         Swal.fire({
             title: 'تراخيص التعديل الاستثنائية',
             html: modalHtml,
-            width: '600px',
+            width: '750px',
             showCancelButton: true,
             confirmButtonText: 'حفظ التراخيص <i class="fas fa-save"></i>',
             cancelButtonText: 'إلغاء',
             confirmButtonColor: '#28a745',
+            customClass: { popup: 'swal-wide' },
             preConfirm: () => {
+                // 1. استخراج المؤسسات المحددة
                 const selectedSchools = Array.from(document.getElementById('perm_schools').selectedOptions).map(o => o.value);
                 
-                // معالجة الأرقام: تنظيف من الفراغات، تحويل الفواصل إلى أسطر، استخراج الأرقام فقط، وإزالة الأصفار الزائدة من البداية
-                const rawCcps = document.getElementById('perm_ccps').value;
-                const ccpArray = rawCcps.replace(/,/g, '\n').split('\n')
-                    .map(ccp => ccp.replace(/\D/g, '').replace(/^0+/, '')) // إبقاء الأرقام فقط وحذف الأصفار البادئة
+                // 2. استخراج الأرقام المتبقية في الجدول
+                const existingRows = document.querySelectorAll('.perm-ccp-row');
+                const existingCcps = Array.from(existingRows).map(row => row.getAttribute('data-ccp'));
+
+                // 3. استخراج الأرقام الجديدة المضافة في مربع النص
+                const rawNewCcps = document.getElementById('perm_ccps_add').value;
+                const newCcpArray = rawNewCcps.replace(/,/g, '\n').split('\n')
+                    .map(ccp => ccp.replace(/\D/g, '').replace(/^0+/, '')) // إبقاء الأرقام فقط
                     .filter(ccp => ccp.length > 0);
                 
+                // دمج الأرقام القديمة مع الجديدة وإزالة التكرار
+                const finalCcps = [...new Set([...existingCcps, ...newCcpArray])];
+
                 return {
                     schools: selectedSchools,
-                    ccps: [...new Set(ccpArray)] // إزالة التكرار
+                    ccps: finalCcps 
                 };
             }
         }).then(async (result) => {
@@ -3130,22 +3198,98 @@ window.openPermissionsModal = async function() {
     }
 };
 
+// --- دوال مساعدة لفلترة وإدارة نافذة التراخيص ---
+
+// 1. فلترة قائمة المؤسسات
+window.filterSchoolsList = function() {
+    const filter = document.getElementById("search_schools_input").value.toLowerCase();
+    const options = document.getElementById("perm_schools").options;
+    for (let i = 0; i < options.length; i++) {
+        const text = options[i].text.toLowerCase();
+        options[i].style.display = text.includes(filter) ? "" : "none";
+    }
+};
+
+// 2. فلترة جدول الموظفين المرخصين
+window.filterPermittedTable = function() {
+    const filter = document.getElementById("search_ccp_input").value.toLowerCase();
+    const rows = document.querySelectorAll(".perm-ccp-row");
+    rows.forEach(row => {
+        const searchData = row.getAttribute('data-search');
+        row.style.display = searchData.includes(filter) ? "" : "none";
+    });
+};
+
+// 3. حذف موظف من الجدول (إلغاء ترخيص)
+window.removePermittedCcp = function(btn) {
+    const row = btn.closest('tr');
+    row.remove();
+    // إذا أصبح الجدول فارغاً
+    const tbody = document.getElementById('permitted_table_body');
+    if (tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:15px;">لا يوجد موظفين مستثنين حالياً</td></tr>';
+    }
+};
+
+// 4. تصدير قائمة التراخيص إلى Excel
+window.exportPermittedExcel = function() {
+    const rows = document.querySelectorAll(".perm-ccp-row");
+    if (rows.length === 0) {
+        Swal.fire('تنبيه', 'لا يوجد بيانات لتصديرها.', 'info');
+        return;
+    }
+
+    let tableContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <style>td { mso-number-format:"\@"; }</style>
+        </head>
+        <body>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th style="background-color:#ccc;">رقم الحساب (CCP)</th>
+                        <th style="background-color:#ccc;">الاسم واللقب</th>
+                        <th style="background-color:#ccc;">مؤسسة العمل</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    rows.forEach(row => {
+        const ccp = row.getAttribute('data-ccp');
+        const name = row.children[1].innerText;
+        const school = row.children[2].innerText;
+        
+        tableContent += `
+            <tr>
+                <td style='mso-number-format:"\@";'>${ccp}</td>
+                <td>${name}</td>
+                <td>${school}</td>
+            </tr>
+        `;
+    });
+
+    tableContent += `</tbody></table></body></html>`;
+
+    const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = `قائمة_التراخيص_الاستثنائية_${new Date().toISOString().slice(0,10)}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// --- دالة الحفظ ---
 window.savePermissions = async function(data) {
     Swal.fire({ title: 'جاري الحفظ...', didOpen: () => Swal.showLoading() });
     try {
         const docRef = doc(db, "config", "edit_permissions");
-        await setDoc(docRef, data); // إنشاء أو تحديث
+        await setDoc(docRef, data); 
         Swal.fire('تم الحفظ', 'تم تحديث التراخيص بنجاح.', 'success');
     } catch (error) {
         Swal.fire('خطأ', 'فشل حفظ التراخيص: ' + error.message, 'error');
     }
-
 };
-
-
-
-
-
-
-
-
