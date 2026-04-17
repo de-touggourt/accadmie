@@ -260,7 +260,7 @@ let nonRegisteredData = [];
 // ==========================================
 let followUpStartDate = null; 
 
-window.loadFollowUpSettings = async functi
+window.loadFollowUpSettings = async function() {
     try {
         const docRef = doc(db, "config", "tracking_settings");
         const docSnap = await getDoc(docRef);
@@ -3548,3 +3548,6 @@ window.printPermissionsReport = function() {
     `);
     printWindow.document.close();
 };
+
+
+
