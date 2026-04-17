@@ -129,6 +129,12 @@ const SECURE_DASHBOARD_HTML = `
             <label style="font-size: 13px;">بدء الرقابة من:</label>
             <input type="date" id="followUpDateInput" style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; outline: none; font-family: 'Cairo';">
             <button onclick="window.setFollowUpDate()" class="btn" style="background: #fd7e14; color: white; padding: 6px 12px; font-size: 13px;">تفعيل <i class="fas fa-check"></i></button>
+            
+            <button onclick="window.cancelFollowUp()" class="btn" style="background: #6c757d; color: white; padding: 6px 12px; font-size: 13px;" title="إيقاف تلوين السجلات">إلغاء المتابعة <i class="fas fa-times-circle"></i></button>
+            
+            <span id="activeFollowUpLabel" style="font-size: 13px; font-weight: bold; color: #28a745; display: none; margin-right: 10px;">
+                <i class="fas fa-broadcast-tower"></i> المراقبة نشطة بدءاً من: <span id="followUpDateText" style="direction: ltr; display: inline-block;"></span>
+            </span>
         </div>
     </div>
 
@@ -303,17 +309,102 @@ window.getSafeTimestamp = function(dateValue) {
 // ==========================================
 let followUpStartDate = null; 
 
+// دالة تحميل إعدادات المتابعة
 window.loadFollowUpSettings = async function() {
     try {
         const docRef = doc(db, "config", "tracking_settings");
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
+        if (docSnap.exists() && docSnap.data().startDate) {
             window.followUpStartDate = docSnap.data().startDate;
             const input = document.getElementById("followUpDateInput");
             if (input) input.value = window.followUpStartDate;
+            
+            // إظهار النص بالتنسيق الجميل
+            const lbl = document.getElementById("activeFollowUpLabel");
+            const txt = document.getElementById("followUpDateText");
+            if (lbl && txt) {
+                const parts = window.followUpStartDate.split('-');
+                if (parts.length === 3) txt.innerText = `${parts[2]}/${parts[1]}/${parts[0]}`; // تحويل إلى DD/MM/YYYY
+                lbl.style.display = 'inline-block';
+            }
         }
     } catch (e) { console.error("Error loading tracking settings:", e); }
 };
+
+// دالة حفظ وتفعيل التاريخ
+window.setFollowUpDate = async function() {
+    const selectedDate = document.getElementById("followUpDateInput").value;
+    if (!selectedDate) {
+        return Swal.fire("تنبيه", "يرجى اختيار تاريخ أولاً لبدء المتابعة", "warning");
+    }
+
+    Swal.fire({ title: 'جاري تفعيل نظام المتابعة...', didOpen: () => Swal.showLoading() });
+
+    try {
+        const docRef = doc(db, "config", "tracking_settings");
+        // نستخدم merge للحفاظ على أي إعدادات أخرى قد تكون موجودة في الملف
+        await setDoc(docRef, { startDate: selectedDate }, { merge: true }); 
+        window.followUpStartDate = selectedDate;
+        
+        // تحديث النص الجميل
+        const lbl = document.getElementById("activeFollowUpLabel");
+        const txt = document.getElementById("followUpDateText");
+        if (lbl && txt) {
+            const parts = selectedDate.split('-');
+            if (parts.length === 3) txt.innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            lbl.style.display = 'inline-block';
+        }
+        
+        Swal.fire({ icon: 'success', title: 'تم التفعيل', text: 'سيتم الآن تمييز السجلات بدءاً من التاريخ المختار', timer: 2000, showConfirmButton: false });
+        window.applyFilters();
+    } catch (e) {
+        Swal.fire("خطأ", "فشل حفظ الإعدادات: " + e.message, "error");
+    }
+};
+
+
+// ==========================================
+// 🛑 دالة إلغاء المتابعة وتصفير الألوان
+// ==========================================
+window.cancelFollowUp = async function() {
+    if (!window.followUpStartDate) return; // إذا لم تكن مفعلة أصلاً لا نفعل شيئاً
+
+    Swal.fire({
+        title: 'إلغاء نظام المتابعة؟',
+        text: "هل أنت متأكد من رغبتك في إيقاف تلوين السجلات الجديدة والمعدلة؟ (ستعود اللوحة للونها الطبيعي)",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'نعم، قم بالإلغاء',
+        cancelButtonText: 'تراجع'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: 'جاري إيقاف المتابعة...', didOpen: () => Swal.showLoading() });
+            try {
+                // إزالة التاريخ من قاعدة البيانات
+                const docRef = doc(db, "config", "tracking_settings");
+                await setDoc(docRef, { startDate: null }, { merge: true });
+                
+                // تصفير المتغيرات المحلية والواجهة
+                window.followUpStartDate = null;
+                const input = document.getElementById("followUpDateInput");
+                if (input) input.value = '';
+                
+                const lbl = document.getElementById("activeFollowUpLabel");
+                if (lbl) lbl.style.display = 'none';
+
+                Swal.fire({ icon: 'success', title: 'تم الإلغاء', text: 'تم إيقاف تلوين السجلات بنجاح', timer: 1500, showConfirmButton: false });
+                
+                // إعادة رسم الجدول باللون الافتراضي
+                window.applyFilters(); 
+            } catch (e) {
+                Swal.fire("خطأ", "فشل إلغاء المتابعة: " + e.message, "error");
+            }
+        }
+    });
+};
+
 
 window.getRecordStatus = function(row) {
     if (!window.followUpStartDate) return "old";
