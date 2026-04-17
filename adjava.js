@@ -3038,9 +3038,8 @@ window.initDevMode = function() {
 
 };
 
-
 // ==========================================
-// 🔐 نظام تراخيص التعديل الاستثنائية (الواجهة المحسنة بالـ Grid والأزرار الجديدة)
+// 🔐 نظام تراخيص التعديل الاستثنائية (الواجهة المحسنة والموسعة)
 // ==========================================
 
 window.openPermissionsModal = async function() {
@@ -3086,17 +3085,17 @@ window.openPermissionsModal = async function() {
             const cleanTargetCcp = String(ccp).trim().replace(/^0+/, '');
             const emp = allData.find(e => String(e.ccp).trim().replace(/^0+/, '') === cleanTargetCcp);
             
-            const name = emp ? `${emp.fmn} ${emp.frn}` : '<span style="color:red;">غير مسجل في الجدول</span>';
+            const name = emp ? `${emp.fmn} ${emp.frn}` : '<span style="color:red;">غير مسجل</span>';
             const school = emp ? emp.schoolName : '---';
             const searchKey = `${ccp} ${emp ? emp.fmn : ''} ${emp ? emp.frn : ''}`.toLowerCase();
 
             permittedEmployeesHtml += `
                 <tr class="perm-ccp-row" data-search="${searchKey}" data-ccp="${ccp}" style="border-bottom:1px solid #dee2e6;">
-                    <td style="padding:10px 8px; font-weight:bold; color:#d63384;" dir="ltr">${ccp}</td>
-                    <td style="padding:10px 8px;">${name}</td>
-                    <td style="padding:10px 8px; font-size:11px;">${school}</td>
-                    <td style="padding:10px 8px; text-align:center;">
-                        <button type="button" onclick="window.removePermittedCcp(this)" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; transition: 0.2s;" title="إلغاء الترخيص" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
+                    <td style="padding:8px; font-weight:bold; color:#d63384; font-size:12px; white-space:nowrap;" dir="ltr">${ccp}</td>
+                    <td style="padding:8px; font-size:12px;">${name}</td>
+                    <td style="padding:8px; font-size:11px;">${school}</td>
+                    <td style="padding:8px; text-align:center; white-space:nowrap;">
+                        <button type="button" onclick="window.removePermittedCcp(this)" style="background:#dc3545; color:white; border:none; padding:4px 8px; font-size:11px; border-radius:4px; cursor:pointer; transition: 0.2s;" title="إلغاء الترخيص" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
                             <i class="fas fa-times"></i>
                         </button>
                     </td>
@@ -3107,79 +3106,79 @@ window.openPermissionsModal = async function() {
         const modalHtml = `
             <div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl;">
                 
-                <div style="background: #fff3cd; color: #856404; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-info-circle" style="font-size: 18px;"></i> 
+                <div style="background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-info-circle" style="font-size: 16px;"></i> 
                     <span>الموظفون التابعون لهذه المؤسسات أو أصحاب أرقام CCP المدرجة هنا سيتمكنون من تعديل بياناتهم حتى لو كانت المنصة مغلقة.</span>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; align-items: stretch;">
+                <div style="display: grid; grid-template-columns: 1fr 1.8fr; gap: 15px; align-items: stretch;">
                     
-                    <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                         
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                            <label style="font-weight: bold; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <label style="font-weight: bold; color: #2c3e50; font-size: 14px; margin:0; display: flex; align-items: center; gap: 6px;">
                                 <i class="fas fa-school" style="color: #3498db;"></i> المؤسسات المسموحة
                             </label>
-                            <button type="button" onclick="window.clearAllSchools()" class="btn" style="background:#6c757d; color:white; padding:4px 8px; font-size:12px; border:none; border-radius:5px; cursor:pointer;" title="إلغاء تحديد كل المؤسسات">
+                            <button type="button" onclick="window.clearAllSchools()" class="btn" style="background:#6c757d; color:white; padding:4px 8px; font-size:11px; border:none; border-radius:4px; cursor:pointer; white-space:nowrap;" title="إلغاء تحديد كل المؤسسات">
                                 تفريغ <i class="fas fa-eraser"></i>
                             </button>
                         </div>
                         
-                        <div style="position:relative; margin-bottom:12px;">
-                            <i class="fas fa-search" style="position:absolute; top:50%; right:12px; transform:translateY(-50%); color:#aaa;"></i>
-                            <input type="text" id="search_schools_input" onkeyup="window.filterSchoolsList()" placeholder="بحث عن مؤسسة..." style="width:100%; padding:10px 40px 10px 10px; border:1px solid #ced4da; border-radius:6px; font-family:'Cairo'; outline: none;">
+                        <div style="position:relative; margin-bottom:10px;">
+                            <i class="fas fa-search" style="position:absolute; top:50%; right:10px; transform:translateY(-50%); color:#aaa; font-size:12px;"></i>
+                            <input type="text" id="search_schools_input" onkeyup="window.filterSchoolsList()" placeholder="بحث عن مؤسسة..." style="width:100%; padding:8px 30px 8px 8px; font-size:12px; border:1px solid #ced4da; border-radius:5px; font-family:'Cairo'; outline: none;">
                         </div>
                         
-                        <select id="perm_schools" multiple style="width: 100%; flex-grow: 1; min-height: 250px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-family: 'Cairo'; font-size:14px; outline: none; background: #fff;">
+                        <select id="perm_schools" multiple style="width: 100%; flex-grow: 1; min-height: 250px; padding: 8px; border: 1px solid #ced4da; border-radius: 5px; font-family: 'Cairo'; font-size:12px; outline: none; background: #fff;">
                             ${schoolsOptions}
                         </select>
-                        <small style="color: #6c757d; display:block; margin-top:10px; font-size: 12px;">
+                        <small style="color: #6c757d; display:block; margin-top:8px; font-size: 11px;">
                             <i class="fas fa-mouse-pointer"></i> اضغط <b>CTRL</b> لاختيار أكثر من مؤسسة.
                         </small>
                     </div>
                     
-                    <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                         
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                            <label style="font-weight: bold; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <label style="font-weight: bold; color: #2c3e50; font-size: 14px; margin:0; display: flex; align-items: center; gap: 6px;">
                                 <i class="fas fa-users" style="color: #e63946;"></i> الحسابات المسموحة (CCP)
                             </label>
                             <div style="display: flex; gap: 5px;">
-                                <button type="button" onclick="window.clearAllCcps()" class="btn" style="background:#dc3545; color:white; padding:6px 10px; font-size:12px; border:none; border-radius:5px; cursor:pointer;">
+                                <button type="button" onclick="window.clearAllCcps()" class="btn" style="background:#dc3545; color:white; padding:4px 8px; font-size:11px; border:none; border-radius:4px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
                                     حذف الكل <i class="fas fa-trash"></i>
                                 </button>
-                                <button type="button" onclick="window.exportPermittedExcel()" class="btn" style="background:#198754; color:white; padding:6px 10px; font-size:12px; border:none; border-radius:5px; cursor:pointer;">
+                                <button type="button" onclick="window.exportPermittedExcel()" class="btn" style="background:#198754; color:white; padding:4px 8px; font-size:11px; border:none; border-radius:4px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
                                     Excel <i class="fas fa-file-excel"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div style="border:1px solid #ced4da; border-radius:6px; background:#fff; display: flex; flex-direction: column; max-height: 220px; overflow: hidden; margin-bottom: 15px;">
-                            <div style="padding:10px; background:#e9ecef; border-bottom:1px solid #ced4da;">
-                                <input type="text" id="search_ccp_input" onkeyup="window.filterPermittedTable()" placeholder="بحث بالاسم أو CCP..." style="width:100%; padding:8px; border:1px solid #ced4da; border-radius:4px; font-family:'Cairo'; font-size:13px; outline: none;">
+                        <div style="border:1px solid #ced4da; border-radius:5px; background:#fff; display: flex; flex-direction: column; max-height: 250px; overflow: hidden; margin-bottom: 12px;">
+                            <div style="padding:8px; background:#e9ecef; border-bottom:1px solid #ced4da;">
+                                <input type="text" id="search_ccp_input" onkeyup="window.filterPermittedTable()" placeholder="بحث بالاسم أو CCP..." style="width:100%; padding:6px; font-size:12px; border:1px solid #ced4da; border-radius:4px; font-family:'Cairo'; outline: none;">
                             </div>
                             <div style="overflow-y:auto; flex-grow: 1;">
-                                <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right;">
+                                <table style="width:100%; border-collapse:collapse; text-align:right;">
                                     <thead style="position:sticky; top:0; background:#f1f3f5; box-shadow:0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
                                         <tr>
-                                            <th style="padding:10px; border-bottom:1px solid #ddd;">CCP</th>
-                                            <th style="padding:10px; border-bottom:1px solid #ddd;">الاسم واللقب</th>
-                                            <th style="padding:10px; border-bottom:1px solid #ddd;">المؤسسة</th>
-                                            <th style="padding:10px; text-align:center; border-bottom:1px solid #ddd;">إلغاء</th>
+                                            <th style="padding:8px; font-size:12px; border-bottom:1px solid #ddd;">CCP</th>
+                                            <th style="padding:8px; font-size:12px; border-bottom:1px solid #ddd;">الاسم واللقب</th>
+                                            <th style="padding:8px; font-size:12px; border-bottom:1px solid #ddd;">المؤسسة</th>
+                                            <th style="padding:8px; font-size:12px; text-align:center; border-bottom:1px solid #ddd; white-space:nowrap;">إلغاء</th>
                                         </tr>
                                     </thead>
                                     <tbody id="permitted_table_body">
-                                        ${permittedEmployeesHtml || '<tr><td colspan="4" style="text-align:center; padding:30px; color:#6c757d;">لا يوجد موظفين مستثنين حالياً</td></tr>'}
+                                        ${permittedEmployeesHtml || '<tr><td colspan="4" style="text-align:center; padding:20px; font-size:12px; color:#6c757d;">لا يوجد موظفين مستثنين حالياً</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
                         <div style="margin-top: auto;">
-                            <label style="font-size:14px; font-weight:bold; margin-bottom:8px; display: flex; align-items: center; gap: 5px; color: #2c3e50;">
+                            <label style="font-size:13px; font-weight:bold; margin-bottom:6px; display: flex; align-items: center; gap: 5px; color: #2c3e50;">
                                 <i class="fas fa-plus-circle" style="color: #28a745;"></i> إضافة أرقام CCP جديدة (نسخ ولصق):
                             </label>
-                            <textarea id="perm_ccps_add" placeholder="الصق أرقام الحسابات هنا... (رقم في كل سطر)" style="width: 100%; height: 70px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; direction: ltr; font-family: monospace; font-size: 14px; outline: none; resize: none;"></textarea>
+                            <textarea id="perm_ccps_add" placeholder="الصق أرقام الحسابات هنا... (رقم في كل سطر)" style="width: 100%; height: 60px; padding: 8px; border: 1px solid #ced4da; border-radius: 5px; direction: ltr; font-family: monospace; font-size: 13px; outline: none; resize: none;"></textarea>
                         </div>
 
                     </div>
@@ -3190,7 +3189,7 @@ window.openPermissionsModal = async function() {
         Swal.fire({
             title: 'تراخيص التعديل الاستثنائية',
             html: modalHtml,
-            width: '1150px', // عرض كافٍ لاستيعاب العمودين
+            width: '1250px', // زيادة العرض بشكل ملحوظ لمنع التداخل
             showCancelButton: true,
             confirmButtonText: 'حفظ التراخيص <i class="fas fa-save"></i>',
             cancelButtonText: 'إلغاء',
