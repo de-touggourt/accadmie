@@ -3039,7 +3039,7 @@ window.initDevMode = function() {
 };
 
 // ==========================================
-// 🔐 نظام تراخيص التعديل الاستثنائية (الواجهة بنسبة متوازنة 44% للمؤسسات و 56% للجدول)
+// 🔐 نظام تراخيص التعديل الاستثنائية (إضافة عمود الحالة والتلوين)
 // ==========================================
 
 window.openPermissionsModal = async function() {
@@ -3049,7 +3049,6 @@ window.openPermissionsModal = async function() {
     });
 
     try {
-        // جلب الإعدادات الحالية من Firestore
         const docRef = doc(db, "config", "edit_permissions");
         const docSnap = await getDoc(docRef);
         
@@ -3061,7 +3060,6 @@ window.openPermissionsModal = async function() {
             allowedCCPs = docSnap.data().ccps || [];
         }
 
-        // استخراج كل المؤسسات لإنشاء القائمة المنسدلة
         let allSchoolsList = [];
         for (let bal in primarySchoolsByBaladiya) {
             primarySchoolsByBaladiya[bal].forEach(s => allSchoolsList.push(s.name));
@@ -3073,13 +3071,12 @@ window.openPermissionsModal = async function() {
         allSchoolsList.push("مديرية التربية لولاية توقرت");
         allSchoolsList = [...new Set(allSchoolsList)].sort(); 
 
-        // تجهيز خيارات المؤسسات
         const schoolsOptions = allSchoolsList.map(s => {
             const isSelected = allowedSchools.includes(s) ? 'selected' : '';
             return `<option value="${s}" ${isSelected}>${s}</option>`;
         }).join('');
 
-        // تجهيز جدول الموظفين المسموح لهم
+        // 1. تجهيز جدول الموظفين القدامى (يظهرون بلون أبيض عادي وحالة فارغة)
         let permittedEmployeesHtml = '';
         allowedCCPs.forEach(ccp => {
             const cleanTargetCcp = String(ccp).trim().replace(/^0+/, '');
@@ -3094,6 +3091,7 @@ window.openPermissionsModal = async function() {
                     <td style="padding:12px; font-weight:bold; color:#d63384; font-size:14px; white-space:nowrap;" dir="ltr">${ccp}</td>
                     <td style="padding:12px; font-size:14px; font-weight:600; white-space:nowrap;">${name}</td>
                     <td style="padding:12px; font-size:13px; color:#495057;">${school}</td>
+                    <td style="padding:12px; text-align:center; font-size:13px; font-weight:bold; color:#adb5bd;">---</td>
                     <td style="padding:12px; text-align:center; white-space:nowrap;">
                         <button type="button" onclick="window.removePermittedCcp(this)" style="background:#dc3545; color:white; border:none; padding:6px 12px; font-size:13px; border-radius:5px; cursor:pointer; transition: 0.2s;" title="إلغاء الترخيص" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
                             <i class="fas fa-times"></i>
@@ -3105,10 +3103,7 @@ window.openPermissionsModal = async function() {
 
         const modalHtml = `
             <style>
-                div.swal-super-wide {
-                    width: 95vw !important;
-                    max-width: 1400px !important;
-                }
+                div.swal-super-wide { width: 95vw !important; max-width: 1400px !important; }
             </style>
 
             <div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl;">
@@ -3121,7 +3116,6 @@ window.openPermissionsModal = async function() {
                 <div style="display: grid; grid-template-columns: 4fr 5fr; gap: 20px; align-items: stretch;">
                     
                     <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-                        
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                             <label style="font-weight: 700; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
                                 <i class="fas fa-school" style="color: #3498db; font-size:18px;"></i> المؤسسات المسموحة
@@ -3130,12 +3124,10 @@ window.openPermissionsModal = async function() {
                                 تفريغ <i class="fas fa-eraser"></i>
                             </button>
                         </div>
-                        
                         <div style="position:relative; margin-bottom:15px;">
                             <i class="fas fa-search" style="position:absolute; top:50%; right:12px; transform:translateY(-50%); color:#aaa; font-size:14px;"></i>
                             <input type="text" id="search_schools_input" onkeyup="window.filterSchoolsList()" placeholder="بحث عن مؤسسة..." style="width:100%; padding:10px 35px 10px 10px; font-size:14px; border:1px solid #ced4da; border-radius:6px; font-family:'Cairo'; outline: none; transition:0.3s;" onfocus="this.style.borderColor='#3498db'">
                         </div>
-                        
                         <select id="perm_schools" multiple style="width: 100%; flex-grow: 1; min-height: 280px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-family: 'Cairo'; font-size:14px; font-weight:600; outline: none; background: #fff; line-height: 1.6;">
                             ${schoolsOptions}
                         </select>
@@ -3145,7 +3137,6 @@ window.openPermissionsModal = async function() {
                     </div>
                     
                     <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-                        
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                             <label style="font-weight: 700; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
                                 <i class="fas fa-users" style="color: #e63946; font-size:18px;"></i> الحسابات المسموحة (CCP)
@@ -3171,21 +3162,27 @@ window.openPermissionsModal = async function() {
                                             <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; border-bottom:2px solid #dee2e6;">رقم الحساب (CCP)</th>
                                             <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; border-bottom:2px solid #dee2e6;">الاسم واللقب</th>
                                             <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; border-bottom:2px solid #dee2e6;">المؤسسة</th>
+                                            <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; text-align:center; border-bottom:2px solid #dee2e6;">الحالة</th>
                                             <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; text-align:center; border-bottom:2px solid #dee2e6;">إلغاء</th>
                                         </tr>
                                     </thead>
                                     <tbody id="permitted_table_body">
-                                        ${permittedEmployeesHtml || '<tr><td colspan="4" style="text-align:center; padding:30px; font-size:15px; font-weight:bold; color:#6c757d;">لا يوجد موظفين مستثنين حالياً</td></tr>'}
+                                        ${permittedEmployeesHtml || '<tr><td colspan="5" style="text-align:center; padding:30px; font-size:15px; font-weight:bold; color:#6c757d;">لا يوجد موظفين مستثنين حالياً</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
                         <div style="margin-top: auto;">
-                            <label style="font-size:15px; font-weight:700; margin-bottom:8px; display: flex; align-items: center; gap: 6px; color: #2c3e50;">
-                                <i class="fas fa-plus-circle" style="color: #28a745; font-size:18px;"></i> إضافة أرقام CCP جديدة (نسخ ولصق):
-                            </label>
-                            <textarea id="perm_ccps_add" placeholder="الصق أرقام الحسابات هنا... (رقم في كل سطر)" style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; direction: ltr; font-family: monospace; font-size: 15px; font-weight:bold; outline: none; resize: none; transition:0.3s;" onfocus="this.style.borderColor='#28a745'"></textarea>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <label style="font-size:15px; font-weight:700; display: flex; align-items: center; gap: 6px; color: #2c3e50;">
+                                    <i class="fas fa-plus-circle" style="color: #28a745; font-size:18px;"></i> إضافة أرقام CCP جديدة:
+                                </label>
+                                <button type="button" onclick="window.previewNewCcps()" class="btn" style="background:#0d6efd; color:white; padding:4px 12px; font-size:13px; font-weight:bold; border:none; border-radius:5px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:0.2s;" onmouseover="this.style.background='#0b5ed7'" onmouseout="this.style.background='#0d6efd'">
+                                    إدراج بالجدول <i class="fas fa-arrow-up"></i>
+                                </button>
+                            </div>
+                            <textarea id="perm_ccps_add" placeholder="الصق أرقام الحسابات هنا ثم اضغط 'إدراج بالجدول'... (رقم في كل سطر)" style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; direction: ltr; font-family: monospace; font-size: 15px; font-weight:bold; outline: none; resize: none; transition:0.3s;" onfocus="this.style.borderColor='#28a745'"></textarea>
                         </div>
 
                     </div>
@@ -3205,7 +3202,7 @@ window.openPermissionsModal = async function() {
                 const selectedSchools = Array.from(document.getElementById('perm_schools').selectedOptions).map(o => o.value);
                 const existingRows = document.querySelectorAll('.perm-ccp-row');
                 const existingCcps = Array.from(existingRows).map(row => row.getAttribute('data-ccp'));
-
+                
                 const rawNewCcps = document.getElementById('perm_ccps_add').value;
                 const newCcpArray = rawNewCcps.replace(/,/g, '\n').split('\n')
                     .map(ccp => ccp.replace(/\D/g, '').replace(/^0+/, '')) 
@@ -3223,6 +3220,80 @@ window.openPermissionsModal = async function() {
 
     } catch (error) {
         Swal.fire('خطأ', 'فشل الاتصال بقاعدة البيانات: ' + error.message, 'error');
+    }
+};
+
+// ==========================================
+// 🆕 دالة إدراج وتلوين الحسابات الجديدة في الجدول مع عمود الحالة
+// ==========================================
+window.previewNewCcps = function() {
+    const textarea = document.getElementById('perm_ccps_add');
+    const tbody = document.getElementById('permitted_table_body');
+    const rawNewCcps = textarea.value;
+
+    if(!rawNewCcps.trim()) return;
+
+    const newCcpArray = rawNewCcps.replace(/,/g, '\n').split('\n')
+        .map(ccp => ccp.replace(/\D/g, '').replace(/^0+/, ''))
+        .filter(ccp => ccp.length > 0);
+
+    if(newCcpArray.length === 0) return;
+
+    // إزالة رسالة "لا يوجد موظفين" إن وجدت
+    if(tbody.querySelector('td[colspan="5"]')) {
+        tbody.innerHTML = '';
+    }
+
+    let addedCount = 0;
+
+    newCcpArray.forEach(ccp => {
+        // التحقق من عدم وجوده مسبقاً في الجدول لمنع التكرار
+        const exists = document.querySelector(`.perm-ccp-row[data-ccp="${ccp}"]`);
+        if(exists) return; 
+
+        const cleanTargetCcp = String(ccp).trim().replace(/^0+/, '');
+        const emp = allData.find(e => String(e.ccp).trim().replace(/^0+/, '') === cleanTargetCcp);
+
+        const name = emp ? `${emp.fmn} ${emp.frn}` : '<span style="color:red; font-weight:bold;">غير مسجل</span>';
+        const school = emp ? emp.schoolName : '---';
+        const searchKey = `${ccp} ${emp ? emp.fmn : ''} ${emp ? emp.frn : ''}`.toLowerCase();
+
+        // إنشاء الصف الجديد وتلوينه بالأخضر الفاتح (#e8f5e9) وإضافة عمود الحالة
+        const tr = document.createElement('tr');
+        tr.className = 'perm-ccp-row';
+        tr.setAttribute('data-search', searchKey);
+        tr.setAttribute('data-ccp', ccp);
+        
+        tr.style.cssText = 'border-bottom:1px solid #dee2e6; background:#e8f5e9; transition:0.2s;';
+        tr.onmouseover = function() { this.style.background='#c8e6c9'; };
+        tr.onmouseout = function() { this.style.background='#e8f5e9'; };
+
+        tr.innerHTML = `
+            <td style="padding:12px; font-weight:bold; color:#198754; font-size:14px; white-space:nowrap;" dir="ltr">${ccp}</td>
+            <td style="padding:12px; font-size:14px; font-weight:600; white-space:nowrap;">${name}</td>
+            <td style="padding:12px; font-size:13px; color:#495057;">${school}</td>
+            <td style="padding:12px; text-align:center; white-space:nowrap;">
+                <span style="font-size:11px; background:#198754; color:white; padding:4px 8px; border-radius:5px; font-weight:bold;">جديد (تم التعديل)</span>
+            </td>
+            <td style="padding:12px; text-align:center; white-space:nowrap;">
+                <button type="button" onclick="window.removePermittedCcp(this)" style="background:#dc3545; color:white; border:none; padding:6px 12px; font-size:13px; border-radius:5px; cursor:pointer; transition: 0.2s;" title="إلغاء الترخيص" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        `;
+        
+        tbody.prepend(tr); // إدراجه في أعلى الجدول
+        addedCount++;
+    });
+
+    textarea.value = ''; // تفريغ المربع بعد الإدراج
+
+    // إظهار إشعار بنجاح الإدراج
+    if(addedCount > 0) {
+        Swal.mixin({toast: true, position: 'top-start', showConfirmButton: false, timer: 3000}).fire({
+            icon: 'success',
+            title: `تم إدراج ${addedCount} حساب جديد في الجدول لمعاينته`
+        });
     }
 };
 // ==========================================
