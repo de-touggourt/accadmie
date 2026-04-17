@@ -3039,7 +3039,7 @@ window.initDevMode = function() {
 };
 
 // ==========================================
-// 🔐 نظام تراخيص التعديل الاستثنائية (الواجهة الأوسع والمحسنة جذرياً)
+// 🔐 نظام تراخيص التعديل الاستثنائية (الواجهة بنسبة متوازنة 44% للمؤسسات و 56% للجدول)
 // ==========================================
 
 window.openPermissionsModal = async function() {
@@ -3118,9 +3118,9 @@ window.openPermissionsModal = async function() {
                     <span>الموظفون التابعون لهذه المؤسسات أو أصحاب أرقام CCP المدرجة هنا سيتمكنون من تعديل بياناتهم حتى لو كانت المنصة مغلقة.</span>
                 </div>
                 
-                <div style="display: flex; gap: 20px; flex-wrap: nowrap; align-items: stretch;">
+                <div style="display: grid; grid-template-columns: 4fr 5fr; gap: 20px; align-items: stretch;">
                     
-                    <div style="flex: 0 0 380px; background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                    <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                             <label style="font-weight: 700; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
@@ -3144,7 +3144,7 @@ window.openPermissionsModal = async function() {
                         </small>
                     </div>
                     
-                    <div style="flex: 1; min-width: 0; background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                    <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                             <label style="font-weight: 700; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
@@ -3196,7 +3196,6 @@ window.openPermissionsModal = async function() {
         Swal.fire({
             title: 'تراخيص التعديل الاستثنائية',
             html: modalHtml,
-            // هنا نربط الكلاس الخاص (swal-super-wide) الذي يحتوي على CSS الإجباري
             customClass: { popup: 'swal-super-wide swal-wide' }, 
             showCancelButton: true,
             confirmButtonText: 'حفظ التراخيص <i class="fas fa-save"></i>',
@@ -3226,7 +3225,6 @@ window.openPermissionsModal = async function() {
         Swal.fire('خطأ', 'فشل الاتصال بقاعدة البيانات: ' + error.message, 'error');
     }
 };
-
 // ==========================================
 // الدوال المساعدة لتشغيل الأزرار داخل النافذة
 // (يجب أن تضعها في الكود الرئيسي لتعمل الأزرار)
