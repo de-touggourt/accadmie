@@ -255,6 +255,49 @@ const rowsPerPage = 10;
 let nonRegisteredData = []; 
 
 
+
+// دالة ذكية لقراءة التواريخ وتحويلها بدقة (تدعم التنسيق الجزائري DD-MM-YYYY)
+window.getSafeTimestamp = function(dateValue) {
+    if (!dateValue) return 0;
+    
+    // إذا كان كائن Date أصلاً
+    if (dateValue instanceof Date) return dateValue.getTime();
+    
+    // إذا كان رقماً (Timestamp)
+    if (typeof dateValue === 'number') return dateValue;
+
+    if (typeof dateValue === 'string') {
+        let cleanDate = dateValue.trim();
+        
+        // محاولة اكتشاف التنسيق DD-MM-YYYY أو DD/MM/YYYY (مع أو بدون وقت)
+        const regexDDMMYYYY = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:\s+(.*))?$/;
+        const match = cleanDate.match(regexDDMMYYYY);
+        
+        if (match) {
+            const day = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10) - 1; // الأشهر تبدأ من 0 برمجياً
+            const year = parseInt(match[3], 10);
+            
+            // معالجة الوقت إن وجد
+            let hours = 0, minutes = 0, seconds = 0;
+            if (match[4]) {
+                const timeParts = match[4].split(':');
+                if (timeParts.length >= 1) hours = parseInt(timeParts[0], 10) || 0;
+                if (timeParts.length >= 2) minutes = parseInt(timeParts[1], 10) || 0;
+                if (timeParts.length >= 3) seconds = parseInt(timeParts[2], 10) || 0;
+            }
+            
+            return new Date(year, month, day, hours, minutes, seconds).getTime();
+        }
+
+        // المحاولة الافتراضية للأنظمة الأخرى (مثل YYYY-MM-DD)
+        const parsed = new Date(cleanDate).getTime();
+        if (!isNaN(parsed)) return parsed;
+    }
+    
+    return 0; // إرجاع صفر إذا فشل كل شيء بدلاً من تعطل النظام
+};
+
 // ==========================================
 // --- متغيرات ودوال نظام المتابعة وتحديد حالة السجل ---
 // ==========================================
@@ -273,18 +316,23 @@ window.loadFollowUpSettings = async function() {
 };
 
 window.getRecordStatus = function(row) {
-    if (!window.followUpStartDate) return "old"; // إذا لم يتم تحديد تاريخ المتابعة، نعتبر الكل قديماً
+    if (!window.followUpStartDate) return "old";
 
-    const followTime = new Date(window.followUpStartDate).getTime();
-    const regTime = row.date ? new Date(row.date).getTime() : 0;
-    const editTime = row.date_edit ? new Date(row.date_edit).getTime() : 0;
+    // ضبط تاريخ المتابعة ليبدأ من الثواني الأولى لليوم لضمان دقة الرقابة
+    const followDate = new Date(window.followUpStartDate);
+    followDate.setHours(0, 0, 0, 0); 
+    const followTime = followDate.getTime();
 
-    // 1. فحص التعديل: يجب أن يكون بعد تاريخ المتابعة وبفارق زمني عن التسجيل لتفادي التعديل الآلي (دقيقتين)
+    // 💡 هنا نستخدم الدالة الذكية بدلاً من new Date
+    const regTime = window.getSafeTimestamp(row.date);
+    const editTime = window.getSafeTimestamp(row.date_edit);
+
+    // 1. فحص التعديل: التعديل يجب أن يكون بعد تفعيل المتابعة، وبفارق زمني عن التسجيل (لتفادي التصحيح التلقائي)
     if (editTime >= followTime && (editTime > regTime + 120000)) {
         return "modified";
     }
 
-    // 2. فحص التسجيل: يجب أن يكون بعد تاريخ المتابعة
+    // 2. فحص التسجيل الجديد: يجب أن يكون بعد تاريخ المتابعة
     if (regTime >= followTime) {
         return "new";
     }
