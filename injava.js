@@ -237,9 +237,9 @@ const SECURE_INTERFACE_HTML = `
           <input type="text" id="ccpField" class="readonly-field">
         </div>
         <div class="outer-group">
-          <label>رقم الضمان الاجتماعي:</label>
-          <input type="text" id="assField" class="readonly-field">
-        </div>
+  <label>رقم الضمان الاجتماعي:</label>
+  <input type="text" id="assField" class="editable-field" maxlength="12" oninput="valNum(this); removeError(this)" placeholder="أدخل 12 رقماً">
+</div>
         <div class="outer-group">
           <label>اللقب:</label>
           <input type="text" id="fmnField" class="editable-field" oninput="valAr(this); removeError(this)">
@@ -334,7 +334,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // 🛑🛑🛑 استبدل هذا الرابط برابط السكريبت الخاص بك 🛑🛑🛑
-const scriptURL = "https://script.google.com/macros/s/AKfycbyXEdCPd-rrImLFLZObPXbeELUqj71mknOOFB7sjMCh6JQE-L7yMIsgFlFXrA5-VTUjRg/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbzKW_MjD27Sh9S6bW8BFltWqNLJalgXW2MgptxtgaxTEiwpDFUSY-hQFNFCtnEkGQFhig/exec";
 
 // --- خريطة الرتب ---
 const gradeMap = {
@@ -1005,7 +1005,8 @@ function fillForm(fbData, savedData) {
 
 // 7️⃣ إرسال التسجيل
 async function submitRegistration() {
-  const fields = {
+ const fields = {
+    ass: document.getElementById("assField"), 
     fmn: document.getElementById("fmnField"),
     frn: document.getElementById("frnField"),
     diz: document.getElementById("dizField"),
@@ -2005,7 +2006,6 @@ window.goToProfessionalCardsMain = function() {
     // الانتقال إلى الصفحة في نفس التبويب (قم بتغيير cards.html إلى اسم صفحتك الفعلي)
     window.location.href = "card2.html"; 
 };
-
 
 
 
