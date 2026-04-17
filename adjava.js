@@ -3039,7 +3039,7 @@ window.initDevMode = function() {
 };
 
 // ==========================================
-// 🔐 نظام تراخيص التعديل الاستثنائية (الواجهة الأوسع والمحسنة)
+// 🔐 نظام تراخيص التعديل الاستثنائية (الواجهة الأوسع والمحسنة جذرياً)
 // ==========================================
 
 window.openPermissionsModal = async function() {
@@ -3085,14 +3085,14 @@ window.openPermissionsModal = async function() {
             const cleanTargetCcp = String(ccp).trim().replace(/^0+/, '');
             const emp = allData.find(e => String(e.ccp).trim().replace(/^0+/, '') === cleanTargetCcp);
             
-            const name = emp ? `${emp.fmn} ${emp.frn}` : '<span style="color:red;">غير مسجل</span>';
+            const name = emp ? `${emp.fmn} ${emp.frn}` : '<span style="color:red; font-weight:bold;">غير مسجل</span>';
             const school = emp ? emp.schoolName : '---';
             const searchKey = `${ccp} ${emp ? emp.fmn : ''} ${emp ? emp.frn : ''}`.toLowerCase();
 
             permittedEmployeesHtml += `
                 <tr class="perm-ccp-row" data-search="${searchKey}" data-ccp="${ccp}" style="border-bottom:1px solid #dee2e6; background:#fff; transition:0.2s;" onmouseover="this.style.background='#f1f3f5'" onmouseout="this.style.background='#fff'">
                     <td style="padding:12px; font-weight:bold; color:#d63384; font-size:14px; white-space:nowrap;" dir="ltr">${ccp}</td>
-                    <td style="padding:12px; font-size:14px; font-weight:600;">${name}</td>
+                    <td style="padding:12px; font-size:14px; font-weight:600; white-space:nowrap;">${name}</td>
                     <td style="padding:12px; font-size:13px; color:#495057;">${school}</td>
                     <td style="padding:12px; text-align:center; white-space:nowrap;">
                         <button type="button" onclick="window.removePermittedCcp(this)" style="background:#dc3545; color:white; border:none; padding:6px 12px; font-size:13px; border-radius:5px; cursor:pointer; transition: 0.2s;" title="إلغاء الترخيص" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
@@ -3104,6 +3104,13 @@ window.openPermissionsModal = async function() {
         });
 
         const modalHtml = `
+            <style>
+                div.swal-super-wide {
+                    width: 95vw !important;
+                    max-width: 1400px !important;
+                }
+            </style>
+
             <div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl;">
                 
                 <div style="background: #fff3cd; color: #856404; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 15px; font-weight:600; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 12px;">
@@ -3111,9 +3118,9 @@ window.openPermissionsModal = async function() {
                     <span>الموظفون التابعون لهذه المؤسسات أو أصحاب أرقام CCP المدرجة هنا سيتمكنون من تعديل بياناتهم حتى لو كانت المنصة مغلقة.</span>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1.8fr; gap: 20px; align-items: stretch;">
+                <div style="display: flex; gap: 20px; flex-wrap: nowrap; align-items: stretch;">
                     
-                    <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                    <div style="flex: 0 0 380px; background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                             <label style="font-weight: 700; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
@@ -3137,7 +3144,7 @@ window.openPermissionsModal = async function() {
                         </small>
                     </div>
                     
-                    <div style="background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                    <div style="flex: 1; min-width: 0; background:#f8f9fa; padding:20px; border-radius:10px; border:1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                             <label style="font-weight: 700; color: #2c3e50; font-size: 16px; margin:0; display: flex; align-items: center; gap: 8px;">
@@ -3157,14 +3164,14 @@ window.openPermissionsModal = async function() {
                             <div style="padding:10px; background:#e9ecef; border-bottom:1px solid #ced4da;">
                                 <input type="text" id="search_ccp_input" onkeyup="window.filterPermittedTable()" placeholder="بحث بالاسم أو CCP..." style="width:100%; padding:10px; font-size:14px; border:1px solid #ced4da; border-radius:5px; font-family:'Cairo'; outline: none; transition:0.3s;" onfocus="this.style.borderColor='#e63946'">
                             </div>
-                            <div style="overflow-y:auto; flex-grow: 1;">
+                            <div style="overflow-y:auto; overflow-x:hidden; flex-grow: 1;">
                                 <table style="width:100%; border-collapse:collapse; text-align:right;">
                                     <thead style="position:sticky; top:0; background:#e2e6ea; box-shadow:0 2px 3px rgba(0,0,0,0.1); z-index: 1;">
                                         <tr>
-                                            <th style="padding:12px; font-size:14px; font-weight:700; color:#495057; border-bottom:2px solid #dee2e6;">رقم الحساب (CCP)</th>
-                                            <th style="padding:12px; font-size:14px; font-weight:700; color:#495057; border-bottom:2px solid #dee2e6;">الاسم واللقب</th>
-                                            <th style="padding:12px; font-size:14px; font-weight:700; color:#495057; border-bottom:2px solid #dee2e6;">المؤسسة</th>
-                                            <th style="padding:12px; font-size:14px; font-weight:700; color:#495057; text-align:center; border-bottom:2px solid #dee2e6; white-space:nowrap;">إلغاء</th>
+                                            <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; border-bottom:2px solid #dee2e6;">رقم الحساب (CCP)</th>
+                                            <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; border-bottom:2px solid #dee2e6;">الاسم واللقب</th>
+                                            <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; border-bottom:2px solid #dee2e6;">المؤسسة</th>
+                                            <th style="padding:12px; font-size:15px; font-weight:800; color:#495057; text-align:center; border-bottom:2px solid #dee2e6;">إلغاء</th>
                                         </tr>
                                     </thead>
                                     <tbody id="permitted_table_body">
@@ -3189,12 +3196,12 @@ window.openPermissionsModal = async function() {
         Swal.fire({
             title: 'تراخيص التعديل الاستثنائية',
             html: modalHtml,
-            width: '90%', // ✅ تم تعيين العرض ليأخذ 90% من مساحة الشاشة بالكامل
+            // هنا نربط الكلاس الخاص (swal-super-wide) الذي يحتوي على CSS الإجباري
+            customClass: { popup: 'swal-super-wide swal-wide' }, 
             showCancelButton: true,
             confirmButtonText: 'حفظ التراخيص <i class="fas fa-save"></i>',
             cancelButtonText: 'إلغاء',
             confirmButtonColor: '#28a745',
-            customClass: { popup: 'swal-wide' },
             preConfirm: () => {
                 const selectedSchools = Array.from(document.getElementById('perm_schools').selectedOptions).map(o => o.value);
                 const existingRows = document.querySelectorAll('.perm-ccp-row');
