@@ -121,6 +121,17 @@ const SECURE_DASHBOARD_HTML = `
       </div>
     </div>
 
+   <div style="background: #fff; padding: 12px 15px; border-radius: 8px; border: 1px solid #fd7e14; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+        <div style="font-weight: bold; color: #d35400; font-size: 14px;">
+            <i class="fas fa-calendar-check"></i> نظام المتابعة:
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 13px;">بدء الرقابة من:</label>
+            <input type="date" id="followUpDateInput" style="padding: 6px; border-radius: 5px; border: 1px solid #ccc; outline: none; font-family: 'Cairo';">
+            <button onclick="window.setFollowUpDate()" class="btn" style="background: #fd7e14; color: white; padding: 6px 12px; font-size: 13px;">تفعيل <i class="fas fa-check"></i></button>
+        </div>
+    </div>
+
    <div class="controls-bar" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
     
     <div style="position:relative; flex-grow:1; display:flex; align-items:center; gap:10px;">
@@ -137,19 +148,24 @@ const SECURE_DASHBOARD_HTML = `
         <option value="all">عرض الكل</option>
         <option value="confirmed">✅ المؤكدة</option>
         <option value="pending">⏳ الغير مؤكدة</option>
+        <option value="new">🆕 التسجيلات الجديدة</option>
+        <option value="modified">📝 السجلات المعدلة</option>
+        <option value="old">📂 السجلات القديمة</option>
     </select>
 
     <button class="btn btn-add" onclick="window.openDirectRegister()">تسجيل جديد<i class="fas fa-plus"></i></button>
     <button class="btn btn-refresh" onclick="window.loadData()">تحديث <i class="fas fa-sync-alt"></i></button>
     <button class="btn btn-firebase" onclick="window.openFirebaseModal()">إضافة موظف<i class="fas fa-database"></i></button>
     <button class="btn btn-excel" onclick="window.downloadExcel()">Excel تحميل<i class="fas fa-file-excel"></i></button>
-    <button class="btn btn-pending-list" style="background-color:#6f42c1; color:white;" onclick="window.openPendingListModal()">قائمة الغير مؤكدة<i class="fas fa-clipboard-list"></i></button>
+    <button class="btn btn-pending-list" style="background-color:#6f42c1; color:white;" onclick="window.openPendingListModal()">الغير مؤكدة<i class="fas fa-clipboard-list"></i></button>
     <button class="btn" style="background-color:#FF00AA; color:white;" onclick="window.checkNonRegistered()">تقرير التسجيل<i class="fas fa-clipboard-list"></i></button>
     <button class="btn" style="background-color:#0d6efd; color:white;" onclick="window.openBatchPrintModal()">طباعة الاستمارات<i class="fas fa-print"></i></button>
 
     <button id="firebaseManagerBtn" class="btn" style="background-color:#e63946; color:white; display:none;" onclick="window.openFirebaseManager()">قاعدة البيانات<i class="fas fa-server"></i></button>
 
-<button class="btn" style="background-color:#17a2b8; color:white;" onclick="window.openPermissionsModal()">تراخيص التعديل <i class="fas fa-unlock-alt"></i></button>
+    <button class="btn" style="background-color:#17a2b8; color:white;" onclick="window.openPermissionsModal()">تراخيص التعديل <i class="fas fa-unlock-alt"></i></button>
+    
+    <button class="btn" style="background-color:#fd7e14; color:white; font-weight:bold;" onclick="window.trackPermissions()">متابعة التراخيص <i class="fas fa-eye"></i></button>
 
     <div id="secretStatusPanel" class="status-toggle-container" style="display:none; align-items:center; gap:10px; background:#fff; padding:5px 15px; border-radius:10px; border:1px solid #2575fc;">
         <span style="font-weight:bold; font-size:13px;">حالة المنصة:</span>
@@ -159,8 +175,6 @@ const SECURE_DASHBOARD_HTML = `
             <option value="0">🔴 مغلقة</option>
         </select>
     </div>
-
-
 </div>
 
 
@@ -239,6 +253,46 @@ let filteredData = [];
 let currentPage = 1;
 const rowsPerPage = 10;
 let nonRegisteredData = []; 
+
+
+// ==========================================
+// --- متغيرات ودوال نظام المتابعة وتحديد حالة السجل ---
+// ==========================================
+let followUpStartDate = null; 
+
+window.loadFollowUpSettings = async functi
+    try {
+        const docRef = doc(db, "config", "tracking_settings");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            window.followUpStartDate = docSnap.data().startDate;
+            const input = document.getElementById("followUpDateInput");
+            if (input) input.value = window.followUpStartDate;
+        }
+    } catch (e) { console.error("Error loading tracking settings:", e); }
+};
+
+window.getRecordStatus = function(row) {
+    if (!window.followUpStartDate) return "old"; // إذا لم يتم تحديد تاريخ المتابعة، نعتبر الكل قديماً
+
+    const followTime = new Date(window.followUpStartDate).getTime();
+    const regTime = row.date ? new Date(row.date).getTime() : 0;
+    const editTime = row.date_edit ? new Date(row.date_edit).getTime() : 0;
+
+    // 1. فحص التعديل: يجب أن يكون بعد تاريخ المتابعة وبفارق زمني عن التسجيل لتفادي التعديل الآلي (دقيقتين)
+    if (editTime >= followTime && (editTime > regTime + 120000)) {
+        return "modified";
+    }
+
+    // 2. فحص التسجيل: يجب أن يكون بعد تاريخ المتابعة
+    if (regTime >= followTime) {
+        return "new";
+    }
+
+    return "old";
+};
+
+
 
 // ==========================================
 // ⬇️⬇️⬇️ خرائط البيانات الكاملة ⬇️⬇️⬇️
@@ -323,6 +377,8 @@ window.verifyAdminLogin = async function() {
                     window.initDevMode(); 
                     
                     window.loadCurrentStatus();
+                   
+                    window.loadFollowUpSettings();
                     
                 }, 500);
 
@@ -397,13 +453,21 @@ window.applyFilters = function() {
             (row.schoolName && row.schoolName.includes(query))
         );
 
-        // 2. فلتر الحالة (مؤكد/غير مؤكد)
+       // 2. فلتر الحالة (مؤكد/غير مؤكد/جديد/معدل/قديم)
         let matchesStatus = true;
         const isConfirmed = String(row.confirmed).toLowerCase() === "true";
+        const recordType = window.getRecordStatus(row);
+
         if (statusFilter === "confirmed") {
             matchesStatus = isConfirmed;
         } else if (statusFilter === "pending") {
             matchesStatus = !isConfirmed;
+        } else if (statusFilter === "new") {
+            matchesStatus = (recordType === "new");
+        } else if (statusFilter === "modified") {
+            matchesStatus = (recordType === "modified");
+        } else if (statusFilter === "old") {
+            matchesStatus = (recordType === "old");
         }
 
         // 3. 🆕 الفلاتر الجديدة (الطور، الدائرة، البلدية، المؤسسة)
@@ -488,7 +552,18 @@ window.renderTable = function(data) {
       </div>
     `;
 
+    // تحديد لون السطر بناءً على حالة التسجيل ونظام المتابعة
+    const recordType = window.getRecordStatus(row);
+    let rowBgColor = "";
+    
+    if (recordType === "new") {
+        rowBgColor = "background-color: #e8f5e9;"; // أخضر فاتح للجديد
+    } else if (recordType === "modified") {
+        rowBgColor = "background-color: #fff3cd;"; // برتقالي فاتح للمعدل
+    }
+
     const tr = document.createElement("tr");
+    if (rowBgColor) tr.setAttribute("style", rowBgColor); // تطبيق اللون إذا وجد
     tr.innerHTML = `
       <td style="font-weight:700; font-family:'Cairo';">${row.ccp}</td>
       <td>${row.fmn} ${row.frn}</td>
@@ -3270,4 +3345,206 @@ window.savePermissions = async function(data) {
     } catch (error) {
         Swal.fire('خطأ', 'فشل حفظ التراخيص: ' + error.message, 'error');
     }
+};
+
+// ==========================================
+// 📅 دالة حفظ إعدادات تاريخ المتابعة
+// ==========================================
+window.setFollowUpDate = async function() {
+    const selectedDate = document.getElementById("followUpDateInput").value;
+    if (!selectedDate) {
+        return Swal.fire("تنبيه", "يرجى اختيار تاريخ أولاً لبدء المتابعة", "warning");
+    }
+
+    Swal.fire({ title: 'جاري تفعيل نظام المتابعة...', didOpen: () => Swal.showLoading() });
+
+    try {
+        const docRef = doc(db, "config", "tracking_settings");
+        await setDoc(docRef, { startDate: selectedDate });
+        window.followUpStartDate = selectedDate;
+        
+        Swal.fire({ icon: 'success', title: 'تم التفعيل', text: 'سيتم الآن تمييز السجلات الجديدة والمعدلة بناءً على التاريخ المختار', timer: 2000, showConfirmButton: false });
+        window.applyFilters(); // تحديث الجدول مباشرة لعكس التغييرات
+    } catch (e) {
+        Swal.fire("خطأ", "فشل حفظ الإعدادات: " + e.message, "error");
+    }
+};
+
+// ==========================================
+// 📊 نظام متابعة حسابات التراخيص
+// ==========================================
+window.trackPermissions = async function() {
+    Swal.fire({ title: 'جاري تحليل التراخيص والنشاط...', didOpen: () => Swal.showLoading() });
+
+    try {
+        const docRef = doc(db, "config", "edit_permissions");
+        const docSnap = await getDoc(docRef);
+        
+        let allowedSchools = [];
+        let allowedCCPs = [];
+        
+        if (docSnap.exists()) {
+            allowedSchools = docSnap.data().schools || [];
+            allowedCCPs = docSnap.data().ccps || [];
+        }
+
+        if (allowedSchools.length === 0 && allowedCCPs.length === 0) {
+            Swal.fire('تنبيه', 'لا توجد تراخيص استثنائية ممنوحة حالياً في النظام.', 'info');
+            return;
+        }
+
+        let targetEmployees = allData.filter(row => {
+            const hasSchoolPerm = allowedSchools.includes(row.schoolName);
+            const hasCcpPerm = allowedCCPs.includes(String(row.ccp).trim().replace(/^0+/, ''));
+            return hasSchoolPerm || hasCcpPerm;
+        });
+
+        let modifiedCount = 0;
+        let notModifiedCount = 0;
+
+        let tableRows = targetEmployees.map((row, index) => {
+            // نعتمد نفس دالة المتابعة لتحديد هل تم التعديل
+            const isModified = window.getRecordStatus(row) === "modified";
+            if (isModified) modifiedCount++; else notModifiedCount++;
+            
+            const statusBadge = isModified 
+                ? '<span style="color:#28a745; font-weight:bold;"><i class="fas fa-check-circle"></i> تم التعديل</span>'
+                : '<span style="color:#dc3545; font-weight:bold;"><i class="fas fa-times-circle"></i> لم يُعدل</span>';
+            
+            const reason = allowedCCPs.includes(String(row.ccp).trim().replace(/^0+/, '')) ? 'حساب CCP' : 'مؤسسة';
+
+            return `
+                <tr style="border-bottom:1px solid #eee; background-color: ${isModified ? '#e8f5e9' : '#fff5f5'};">
+                    <td style="padding:10px;">${index + 1}</td>
+                    <td style="padding:10px; font-weight:bold; color:#1d3557;" dir="ltr">${row.ccp}</td>
+                    <td style="padding:10px;">${row.fmn} ${row.frn}</td>
+                    <td style="padding:10px;">${row.schoolName || '-'}</td>
+                    <td style="padding:10px; font-size:12px; color:#6c757d;">عبر ${reason}</td>
+                    <td style="padding:10px; text-align:center;">${statusBadge}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const modalHtml = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; text-align:center; gap:10px;">
+                <div style="background:#e3f2fd; padding:10px; border-radius:8px; flex:1; border:1px solid #90caf9;">
+                    <div style="font-size:12px; color:#1565c0;">إجمالي المرخص لهم</div>
+                    <div style="font-size:22px; font-weight:bold; color:#0d47a1;">${targetEmployees.length}</div>
+                </div>
+                <div style="background:#e8f5e9; padding:10px; border-radius:8px; flex:1; border:1px solid #a5d6a7;">
+                    <div style="font-size:12px; color:#2e7d32;">قاموا بالتعديل</div>
+                    <div style="font-size:22px; font-weight:bold; color:#1b5e20;">${modifiedCount}</div>
+                </div>
+                <div style="background:#ffebee; padding:10px; border-radius:8px; flex:1; border:1px solid #ef9a9a;">
+                    <div style="font-size:12px; color:#c62828;">لم يعدلوا بعد</div>
+                    <div style="font-size:22px; font-weight:bold; color:#b71c1c;">${notModifiedCount}</div>
+                </div>
+            </div>
+
+            <div style="text-align:left; margin-bottom:10px;">
+                <button onclick="window.printPermissionsReport()" class="btn" style="background-color:#2b2d42; color:white; font-size:13px;">
+                    طباعة القائمة <i class="fas fa-print"></i>
+                </button>
+            </div>
+
+            <div class="table-responsive" style="max-height:400px; overflow-y:auto; direction:rtl; border:1px solid #dee2e6; border-radius:8px;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right;">
+                    <thead style="background:#f8f9fa; position:sticky; top:0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                        <tr>
+                            <th style="padding:10px; border-bottom:2px solid #dee2e6;">#</th>
+                            <th style="padding:10px; border-bottom:2px solid #dee2e6;">CCP</th>
+                            <th style="padding:10px; border-bottom:2px solid #dee2e6;">الاسم واللقب</th>
+                            <th style="padding:10px; border-bottom:2px solid #dee2e6;">المؤسسة</th>
+                            <th style="padding:10px; border-bottom:2px solid #dee2e6;">الترخيص</th>
+                            <th style="padding:10px; text-align:center; border-bottom:2px solid #dee2e6;">الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows || '<tr><td colspan="6" style="text-align:center; padding:20px;">لا يوجد موظفين معنيين بالتراخيص حالياً.</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        window.tempTargetEmployees = targetEmployees;
+
+        Swal.fire({
+            title: '<strong>متابعة نشاط الحسابات المرخصة</strong>',
+            html: modalHtml,
+            width: '950px',
+            showConfirmButton: true,
+            confirmButtonText: 'إغلاق',
+            customClass: { popup: 'swal-wide' }
+        });
+
+    } catch (error) {
+        Swal.fire('خطأ', 'فشل تحليل البيانات: ' + error.message, 'error');
+    }
+};
+
+window.printPermissionsReport = function() {
+    if (!window.tempTargetEmployees || window.tempTargetEmployees.length === 0) return;
+    
+    const printDate = new Date().toLocaleDateString('ar-DZ');
+    
+    const printRows = window.tempTargetEmployees.map((row, index) => {
+        const isModified = window.getRecordStatus(row) === "modified";
+        const statusText = isModified ? "تم التعديل" : "لم يعدل";
+        const color = isModified ? "#1b5e20" : "#b71c1c";
+        
+        return `
+            <tr>
+                <td>${index + 1}</td>
+                <td style="font-weight:bold;" dir="ltr">${row.ccp}</td>
+                <td>${row.fmn} ${row.frn}</td>
+                <td>${row.schoolName || '-'}</td>
+                <td style="font-weight:bold; color: ${color};">${statusText}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html dir="rtl" lang="ar">
+        <head>
+            <title>تقرير متابعة التراخيص</title>
+            <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+            <style>
+                body { font-family: 'Cairo', sans-serif; padding: 20px; }
+                .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+                th, td { border: 1px solid #000; padding: 10px; text-align: center; }
+                th { background-color: #e0e0e0 !important; font-weight: bold; }
+                @media print { body { -webkit-print-color-adjust: exact; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>الجمهورية الجزائرية الديمقراطية الشعبية</h2>
+                <h3>مديرية التربية لولاية توقرت - مصلحة الرواتب</h3>
+                <h3 style="text-decoration: underline;">تقرير متابعة نشاط الموظفين المرخصين بالتعديل</h3>
+                <p>تاريخ الاستخراج: ${printDate}</p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="5%">الرقم</th>
+                        <th width="20%">CCP</th>
+                        <th width="30%">الاسم واللقب</th>
+                        <th width="30%">المؤسسة</th>
+                        <th width="15%">حالة التعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${printRows}
+                </tbody>
+            </table>
+            <div style="margin-top:20px; font-weight:bold;">العدد الإجمالي: ${window.tempTargetEmployees.length}</div>
+            <script>
+                window.onload = function() { setTimeout(function() { window.print(); }, 500); }
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 };
