@@ -3189,7 +3189,7 @@ window.openPermissionsModal = async function() {
         Swal.fire({
             title: 'تراخيص التعديل الاستثنائية',
             html: modalHtml,
-            width: 80%, // زيادة العرض بشكل ملحوظ لمنع التداخل
+            width: '80%', // زيادة العرض بشكل ملحوظ لمنع التداخل
             showCancelButton: true,
             confirmButtonText: 'حفظ التراخيص <i class="fas fa-save"></i>',
             cancelButtonText: 'إلغاء',
