@@ -3584,7 +3584,7 @@ window.generatePermittedReport = async function(type) {
             else if (str.includes("ثانوي")) baseName = "الثانوي";
             else if (str.includes("مديرية") || str.includes("تربية")) baseName = "مديرية التربية";
 
-            // تخصيص النص بناءً على نوع الطباعة (طور أو مؤسسة)
+            // تخصيص النص بناءً على نوع الطباعة
             if (type === 'level') {
                 if (baseName === "مديرية التربية" || baseName === "غير محدد") return "موظفو " + baseName;
                 return "موظفو التعليم " + baseName;
@@ -3596,10 +3596,10 @@ window.generatePermittedReport = async function(type) {
 
         // دالة مساعدة لإنشاء HTML الخاص بالجدول
         const buildTableHtml = (title, members) => {
-            // تم إزالة فاصل الصفحات الإجباري من هنا لتتوالى الجداول بشكل طبيعي
+            // التعديل هنا: إضافة page-break-inside و page-break-after لمنع انفصال العنوان عن الجدول
             return `
-                <div style="margin-bottom: 30px;">
-                    <div style="background: #f8f9fa; border: 1px solid #000; padding: 10px; margin-bottom: 10px; font-weight: bold; font-size: 16px;">
+                <div style="margin-bottom: 30px; page-break-inside: avoid; break-inside: avoid;">
+                    <div style="background: #f8f9fa; border: 1px solid #000; padding: 10px; margin-bottom: 10px; font-weight: bold; font-size: 16px; page-break-after: avoid; break-after: avoid;">
                         ${title} (العدد: ${members.length})
                     </div>
                     <table style="width: 100%; border-collapse: collapse;">
@@ -3668,7 +3668,7 @@ window.generatePermittedReport = async function(type) {
                     schoolsInsideLevel[school].push(emp);
                 });
 
-                // عرض المؤسسات متتالية دون فاصل صفحات بينها
+                // عرض المؤسسات متتالية
                 Object.keys(schoolsInsideLevel).sort().forEach(schoolKey => {
                     reportHtml += buildTableHtml('المؤسسة: ' + schoolKey, schoolsInsideLevel[schoolKey]);
                 });
@@ -3692,6 +3692,8 @@ window.generatePermittedReport = async function(type) {
                         body { padding: 0; }
                         /* ضمان عدم انقسام الصف داخل الجدول بين صفحتين */
                         tr { page-break-inside: avoid; break-inside: avoid; }
+                        /* ضمان عدم ترك العناوين في أسفل الصفحة */
+                        h1, h2, h3, h4, h5, th { page-break-after: avoid; break-after: avoid; }
                         .header { display: none; }
                     }
                 </style>
