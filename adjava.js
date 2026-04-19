@@ -3532,28 +3532,7 @@ window.savePermissions = async function(data) {
     }
 };
 
-// ==========================================
-// 📅 دالة حفظ إعدادات تاريخ المتابعة
-// ==========================================
-window.setFollowUpDate = async function() {
-    const selectedDate = document.getElementById("followUpDateInput").value;
-    if (!selectedDate) {
-        return Swal.fire("تنبيه", "يرجى اختيار تاريخ أولاً لبدء المتابعة", "warning");
-    }
 
-    Swal.fire({ title: 'جاري تفعيل نظام المتابعة...', didOpen: () => Swal.showLoading() });
-
-    try {
-        const docRef = doc(db, "config", "tracking_settings");
-        await setDoc(docRef, { startDate: selectedDate });
-        window.followUpStartDate = selectedDate;
-        
-        Swal.fire({ icon: 'success', title: 'تم التفعيل', text: 'سيتم الآن تمييز السجلات الجديدة والمعدلة بناءً على التاريخ المختار', timer: 2000, showConfirmButton: false });
-        window.applyFilters(); // تحديث الجدول مباشرة لعكس التغييرات
-    } catch (e) {
-        Swal.fire("خطأ", "فشل حفظ الإعدادات: " + e.message, "error");
-    }
-};
 
 // ==========================================
 // 📊 نظام متابعة حسابات التراخيص
