@@ -3456,6 +3456,49 @@ window.removePermittedCcp = function(btn) {
     }
 };
 
+// ==========================================
+// 🔍 دوال البحث داخل نافذة التراخيص
+// ==========================================
+
+// 1. دالة البحث في قائمة المؤسسات
+window.filterSchoolsList = function() {
+    const input = document.getElementById("search_schools_input");
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const select = document.getElementById("perm_schools");
+    if (!select) return;
+    const options = select.getElementsByTagName("option");
+
+    for (let i = 0; i < options.length; i++) {
+        const textValue = options[i].textContent || options[i].innerText;
+        // إذا كان النص يطابق البحث نظهره، وإلا نخفيه
+        if (textValue.toLowerCase().includes(filter)) {
+            options[i].style.display = "";
+        } else {
+            options[i].style.display = "none";
+        }
+    }
+};
+
+// 2. دالة البحث في جدول الحسابات (بالاسم أو CCP)
+window.filterPermittedTable = function() {
+    const input = document.getElementById("search_ccp_input");
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const rows = document.getElementsByClassName("perm-ccp-row");
+
+    for (let i = 0; i < rows.length; i++) {
+        // نعتمد على خاصية data-search التي دمجنا فيها (الاسم + اللقب + CCP)
+        const searchData = rows[i].getAttribute("data-search") || "";
+        
+        if (searchData.includes(filter)) {
+            rows[i].style.display = ""; // إظهار
+        } else {
+            rows[i].style.display = "none"; // إخفاء
+        }
+    }
+};
+
 // دالة تفريغ كل المؤسسات المحددة
 window.clearAllSchools = function() {
     const select = document.getElementById('perm_schools');
@@ -3687,6 +3730,5 @@ window.printPermissionsReport = function() {
     `);
     printWindow.document.close();
 };
-
 
 
