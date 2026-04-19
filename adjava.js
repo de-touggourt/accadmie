@@ -3791,9 +3791,13 @@ window.trackPermissions = async function() {
                 </div>
             </div>
 
-            <div style="text-align:left; margin-bottom:10px;">
+            // استبدل هذا الجزء داخل المتغير modalHtml
+            <div style="text-align:left; margin-bottom:10px; display: flex; gap: 10px; justify-content: flex-end;">
                 <button onclick="window.printPermissionsReport()" class="btn" style="background-color:#2b2d42; color:white; font-size:13px;">
-                    طباعة القائمة <i class="fas fa-print"></i>
+                    طباعة الكل <i class="fas fa-print"></i>
+                </button>
+                <button onclick="window.printUnmodifiedPermissionsReport()" class="btn" style="background-color:#dc3545; color:white; font-size:13px;">
+                    طباعة الغير معدلين <i class="fas fa-file-pdf"></i>
                 </button>
             </div>
 
@@ -3899,4 +3903,73 @@ window.printPermissionsReport = function() {
     printWindow.document.close();
 };
 
+window.printUnmodifiedPermissionsReport = function() {
+    if (!window.tempTargetEmployees || window.tempTargetEmployees.length === 0) return;
+    
+    // 1. تصفية الموظفين لاستخراج من لم يقم بالتعديل فقط
+    const unmodifiedEmployees = window.tempTargetEmployees.filter(row => window.getRecordStatus(row) !== "modified");
 
+    if (unmodifiedEmployees.length === 0) {
+        Swal.fire('تنبيه', 'جميع الموظفين المرخص لهم قاموا بالتعديل بالفعل.', 'info');
+        return;
+    }
+
+    const printDate = new Date().toLocaleDateString('ar-DZ');
+    
+    const printRows = unmodifiedEmployees.map((row, index) => {
+        return `
+            <tr>
+                <td>${index + 1}</td>
+                <td style="font-weight:bold;" dir="ltr">${row.ccp}</td>
+                <td>${row.fmn} ${row.frn}</td>
+                <td>${row.schoolName || '-'}</td>
+                <td dir="ltr" style="text-align:center;">${row.phone || '-'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html dir="rtl" lang="ar">
+        <head>
+            <title>تقرير الموظفين غير المعدلين</title>
+            <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+            <style>
+                body { font-family: 'Cairo', sans-serif; padding: 20px; }
+                .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+                th, td { border: 1px solid #000; padding: 10px; text-align: center; }
+                th { background-color: #e0e0e0 !important; font-weight: bold; }
+                @media print { body { -webkit-print-color-adjust: exact; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>الجمهورية الجزائرية الديمقراطية الشعبية</h2>
+                <h3>مديرية التربية لولاية توقرت - مصلحة الرواتب</h3>
+                <h3 style="text-decoration: underline; color: #b71c1c;">قائمة الموظفين المرخصين الذين لم يقوموا بالتعديل</h3>
+                <p>تاريخ الاستخراج: ${printDate}</p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="5%">الرقم</th>
+                        <th width="20%">CCP</th>
+                        <th width="30%">الاسم واللقب</th>
+                        <th width="30%">المؤسسة</th>
+                        <th width="15%">رقم الهاتف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${printRows}
+                </tbody>
+            </table>
+            <div style="margin-top:20px; font-weight:bold; font-size: 16px;">العدد الإجمالي: <span style="color:#b71c1c;">${unmodifiedEmployees.length}</span></div>
+            <script>
+                window.onload = function() { setTimeout(function() { window.print(); }, 500); }
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+};
