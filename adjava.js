@@ -3557,14 +3557,14 @@ window.generatePermittedReport = async function(type) {
     Swal.fire({ title: 'جاري تحضير القوائم...', didOpen: () => Swal.showLoading() });
 
     try {
-        // 1. جلب التراخيص الحالية
+        // 1. جلب التراخيص
         const docRef = doc(db, "config", "edit_permissions");
         const docSnap = await getDoc(docRef);
         if (!docSnap.exists()) return Swal.fire('تنبيه', 'لا توجد تراخيص مسجلة حالياً', 'info');
 
         const { schools = [], ccps = [] } = docSnap.data();
 
-        // 2. تصفية الموظفين المشمولين بالتراخيص
+        // 2. تصفية الموظفين المسموح لهم
         const permitted = allData.filter(row => {
             const hasSchoolPerm = schools.includes(row.schoolName);
             const hasCcpPerm = ccps.includes(String(row.ccp).trim().replace(/^0+/, ''));
@@ -3573,82 +3573,144 @@ window.generatePermittedReport = async function(type) {
 
         if (permitted.length === 0) return Swal.fire('تنبيه', 'لا يوجد موظفون مطابقون للتراخيص الحالية', 'info');
 
-        // 3. منطق الفرز
-        let groupedData = {};
+        let tableRowsHtml = '';
+        let globalIndex = 1; // ترقيم إجمالي متصل
+
+        // 3. بناء صفوف الجدول بناءً على نوع الفرز
         if (type === 'level') {
-            // فرز حسب الطور
-            permitted.forEach(emp => {
-                const level = emp.level || "غير محدد";
-                if (!groupedData[level]) groupedData[level] = [];
-                groupedData[level].push(emp);
+            // فرز مزدوج: (الطور -> ثم المؤسسة -> ثم الموظفين)
+            const levels = [...new Set(permitted.map(e => e.level || "غير محدد"))].sort();
+
+            levels.forEach(level => {
+                const levelMembers = permitted.filter(e => (e.level || "غير محدد") === level);
+
+                // أ- عنوان الطور (رئيسي)
+                tableRowsHtml += `
+                    <tr style="background: #343a40; color: white; border: 2px solid #343a40;">
+                        <td colspan="5" style="padding: 10px; font-weight: 800; font-size: 16px; text-align: center;">
+                            الطور: ${level} <span style="color:#ffc107; margin-right: 15px;">(العدد الإجمالي: ${levelMembers.length})</span>
+                        </td>
+                    </tr>
+                `;
+
+                // استخراج مؤسسات هذا الطور
+                const schoolsInLevel = [...new Set(levelMembers.map(e => e.schoolName || "بدون مؤسسة"))].sort();
+
+                schoolsInLevel.forEach(school => {
+                    const schoolMembers = levelMembers.filter(e => (e.schoolName || "بدون مؤسسة") === school);
+                    
+                    // ترتيب موظفي نفس المؤسسة أبجدياً
+                    schoolMembers.sort((a, b) => (a.fmn || "").localeCompare(b.fmn || "", 'ar'));
+
+                    // ب- عنوان المؤسسة (فرعي)
+                    tableRowsHtml += `
+                        <tr style="background: #e9ecef; border: 1px solid #adb5bd;">
+                            <td colspan="5" style="padding: 8px 15px; font-weight: bold; font-size: 14px; text-align: right; color: #212529;">
+                                🏫 المؤسسة: <span style="color:#0d6efd;">${school}</span> <span style="color:#e63946; margin-right:5px;">(${schoolMembers.length} موظف)</span>
+                            </td>
+                        </tr>
+                    `;
+
+                    // ج- موظفو هذه المؤسسة (مرتبين تحت بعضهم)
+                    schoolMembers.forEach((m) => {
+                        tableRowsHtml += `
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 6px; text-align: center; font-weight: bold;">${globalIndex++}</td>
+                                <td style="padding: 6px; text-align: center; font-weight: bold; direction: ltr;">${m.ccp}</td>
+                                <td style="padding: 6px; font-weight: 600;">${m.fmn} ${m.frn}</td>
+                                <td style="padding: 6px;">${m.job || '-'}</td>
+                                <td style="padding: 6px; font-size: 12px; color:#6c757d;">${m.schoolName || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                });
             });
+
         } else {
-            // فرز حسب المؤسسة
-            permitted.forEach(emp => {
-                const school = emp.schoolName || "بدون مؤسسة";
-                if (!groupedData[school]) groupedData[school] = [];
-                groupedData[school].push(emp);
+            // فرز أحادي: (المؤسسات فقط)
+            const schools = [...new Set(permitted.map(e => e.schoolName || "بدون مؤسسة"))].sort();
+
+            schools.forEach(school => {
+                const schoolMembers = permitted.filter(e => (e.schoolName || "بدون مؤسسة") === school);
+                schoolMembers.sort((a, b) => (a.fmn || "").localeCompare(b.fmn || "", 'ar'));
+
+                tableRowsHtml += `
+                    <tr style="background: #e9ecef; border: 2px solid #343a40;">
+                        <td colspan="5" style="padding: 10px; font-weight: 800; font-size: 15px; text-align: center; color: #212529;">
+                            المؤسسة: ${school} <span style="color:#e63946; margin-right: 10px;">(العدد: ${schoolMembers.length})</span>
+                        </td>
+                    </tr>
+                `;
+
+                schoolMembers.forEach((m) => {
+                    tableRowsHtml += `
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td style="padding: 8px; text-align: center; font-weight: bold;">${globalIndex++}</td>
+                            <td style="padding: 8px; text-align: center; font-weight: bold; direction: ltr;">${m.ccp}</td>
+                            <td style="padding: 8px; font-weight: 600;">${m.fmn} ${m.frn}</td>
+                            <td style="padding: 8px;">${m.job || '-'}</td>
+                            <td style="padding: 8px; font-size: 12px; color:#6c757d;">${m.schoolName || '-'}</td>
+                        </tr>
+                    `;
+                });
             });
         }
 
-        // 4. بناء محتوى الطباعة
+        // 4. بناء الصفحة ونافذة الطباعة
         const printDate = new Date().toLocaleDateString('ar-DZ');
-        let reportHtml = '';
-
-        Object.keys(groupedData).sort().forEach(groupTitle => {
-            const members = groupedData[groupTitle];
-            reportHtml += `
-                <div style="page-break-after: auto; margin-bottom: 30px;">
-                    <div style="background: #f8f9fa; border: 1px solid #000; padding: 10px; margin-bottom: 10px; font-weight: bold; font-size: 16px;">
-                        ${type === 'level' ? 'الطور: ' : 'المؤسسة: '} ${groupTitle} (العدد: ${members.length})
-                    </div>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="background: #eee;">
-                                <th style="border: 1px solid #000; padding: 8px; width: 50px;">#</th>
-                                <th style="border: 1px solid #000; padding: 8px;">CCP</th>
-                                <th style="border: 1px solid #000; padding: 8px;">الاسم واللقب</th>
-                                <th style="border: 1px solid #000; padding: 8px;">الوظيفة</th>
-                                <th style="border: 1px solid #000; padding: 8px;">المؤسسة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${members.map((m, i) => `
-                                <tr>
-                                    <td style="border: 1px solid #000; padding: 6px; text-align: center;">${i+1}</td>
-                                    <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">${m.ccp}</td>
-                                    <td style="border: 1px solid #000; padding: 6px;">${m.fmn} ${m.frn}</td>
-                                    <td style="border: 1px solid #000; padding: 6px;">${m.job || '-'}</td>
-                                    <td style="border: 1px solid #000; padding: 6px;">${m.schoolName}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        });
-
-        // 5. فتح نافذة الطباعة
         const printWin = window.open('', '_blank');
+        
         printWin.document.write(`
             <html dir="rtl" lang="ar">
             <head>
                 <title>تقرير تراخيص التعديل</title>
+                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
                 <style>
-                    body { font-family: 'Cairo', sans-serif; padding: 20px; }
-                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-                    table { font-size: 12px; }
-                    th { font-weight: bold; }
+                    @page { size: A4 portrait; margin: 15mm; }
+                    body { font-family: 'Cairo', sans-serif; padding: 0; margin: 0; color: #333; }
+                    .header { text-align: center; margin-bottom: 20px; border-bottom: 3px double #333; padding-bottom: 15px; }
+                    .header h2 { margin: 0; font-size: 20px; font-weight: 800; }
+                    .header h3 { margin: 5px 0; font-size: 16px; color: #555; }
+                    .header p { margin: 10px 0 0 0; font-size: 14px; font-weight: bold; color: #2c3e50; }
+                    
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #343a40; }
+                    th { background: #343a40 !important; color: white !important; padding: 10px; font-size: 14px; text-align: center; border: 1px solid #495057; -webkit-print-color-adjust: exact; }
+                    td { border: 1px solid #adb5bd; }
+                    
+                    @media print {
+                        body { -webkit-print-color-adjust: exact; }
+                        table { page-break-inside: auto; }
+                        tr { page-break-inside: avoid; page-break-after: auto; }
+                        thead { display: table-header-group; }
+                    }
                 </style>
             </head>
             <body>
                 <div class="header">
-                    <h2>مديرية التربية لولاية توقرت - مصلحة الرواتب</h2>
-                    <h3>تقرير الموظفين المسموح لهم بالتعديل (فرز حسب ${type === 'level' ? 'الأطوار' : 'المؤسسات'})</h3>
-                    <p>تاريخ الاستخراج: ${printDate}</p>
+                    <h2>الجمهورية الجزائرية الديمقراطية الشعبية</h2>
+                    <h3>مديرية التربية لولاية توقرت - مصلحة الرواتب</h3>
+                    <h3 style="text-decoration: underline;">قائمة الموظفين المرخص لهم بالتعديل (الفرز حسب ${type === 'level' ? 'الأطوار' : 'المؤسسات'})</h3>
+                    <p>تاريخ الاستخراج: ${printDate} | العدد الإجمالي للمرخصين: <span style="color:#e63946;">${permitted.length}</span></p>
                 </div>
-                ${reportHtml}
-                <script>window.onload = function() { window.print(); }</script>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 20%;">CCP</th>
+                            <th style="width: 30%;">الاسم واللقب</th>
+                            <th style="width: 25%;">الوظيفة</th>
+                            <th style="width: 20%;">المؤسسة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRowsHtml}
+                    </tbody>
+                </table>
+                
+                <script>
+                    window.onload = function() { setTimeout(() => window.print(), 500); }
+                </script>
             </body>
             </html>
         `);
