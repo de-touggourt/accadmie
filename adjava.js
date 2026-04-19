@@ -319,12 +319,14 @@ window.loadFollowUpSettings = async function() {
             const input = document.getElementById("followUpDateInput");
             if (input) input.value = window.followUpStartDate;
             
-            // إظهار النص بالتنسيق الجميل
+            // التنسيق الاحترافي: "17 أفريل 2026"
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            const formattedDate = new Date(window.followUpStartDate).toLocaleDateString('ar-DZ', options);
+            
             const lbl = document.getElementById("activeFollowUpLabel");
             const txt = document.getElementById("followUpDateText");
             if (lbl && txt) {
-                const parts = window.followUpStartDate.split('-');
-                if (parts.length === 3) txt.innerText = `${parts[2]}/${parts[1]}/${parts[0]}`; // تحويل إلى DD/MM/YYYY
+                txt.innerText = formattedDate;
                 lbl.style.display = 'inline-block';
             }
         }
@@ -334,32 +336,28 @@ window.loadFollowUpSettings = async function() {
 // دالة حفظ وتفعيل التاريخ
 window.setFollowUpDate = async function() {
     const selectedDate = document.getElementById("followUpDateInput").value;
-    if (!selectedDate) {
-        return Swal.fire("تنبيه", "يرجى اختيار تاريخ أولاً لبدء المتابعة", "warning");
-    }
+    if (!selectedDate) return Swal.fire("تنبيه", "يرجى اختيار تاريخ أولاً", "warning");
 
-    Swal.fire({ title: 'جاري تفعيل نظام المتابعة...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'جاري التفعيل...', didOpen: () => Swal.showLoading() });
 
     try {
         const docRef = doc(db, "config", "tracking_settings");
-        // نستخدم merge للحفاظ على أي إعدادات أخرى قد تكون موجودة في الملف
-        await setDoc(docRef, { startDate: selectedDate }, { merge: true }); 
+        await setDoc(docRef, { startDate: selectedDate }, { merge: true });
         window.followUpStartDate = selectedDate;
         
-        // تحديث النص الجميل
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        const formattedDate = new Date(selectedDate).toLocaleDateString('ar-DZ', options);
+        
         const lbl = document.getElementById("activeFollowUpLabel");
         const txt = document.getElementById("followUpDateText");
         if (lbl && txt) {
-            const parts = selectedDate.split('-');
-            if (parts.length === 3) txt.innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            txt.innerText = formattedDate;
             lbl.style.display = 'inline-block';
         }
         
-        Swal.fire({ icon: 'success', title: 'تم التفعيل', text: 'سيتم الآن تمييز السجلات بدءاً من التاريخ المختار', timer: 2000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'تم التفعيل', text: `بدء المراقبة من: ${formattedDate}`, timer: 2000, showConfirmButton: false });
         window.applyFilters();
-    } catch (e) {
-        Swal.fire("خطأ", "فشل حفظ الإعدادات: " + e.message, "error");
-    }
+    } catch (e) { Swal.fire("خطأ", e.message, "error"); }
 };
 
 
