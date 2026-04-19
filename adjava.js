@@ -3790,8 +3790,7 @@ window.trackPermissions = async function() {
                     <div style="font-size:22px; font-weight:bold; color:#b71c1c;">${notModifiedCount}</div>
                 </div>
             </div>
-
-            // استبدل هذا الجزء داخل المتغير modalHtml
+            
             <div style="text-align:left; margin-bottom:10px; display: flex; gap: 10px; justify-content: flex-end;">
                 <button onclick="window.printPermissionsReport()" class="btn" style="background-color:#2b2d42; color:white; font-size:13px;">
                     طباعة الكل <i class="fas fa-print"></i>
