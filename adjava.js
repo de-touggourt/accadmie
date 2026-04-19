@@ -3374,6 +3374,9 @@ window.openPermissionsModal = async function() {
                                 <button type="button" onclick="window.exportPermittedExcel()" class="btn" style="background:#198754; color:white; padding:6px 12px; font-size:13px; font-weight:bold; border:none; border-radius:5px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:5px; transition:0.2s;" onmouseover="this.style.background='#157347'" onmouseout="this.style.background='#198754'">
                                     Excel <i class="fas fa-file-excel"></i>
                                 </button>
+                                <button type="button" onclick="window.openPermissionsReportSelector()" class="btn" style="background:#6a11cb; color:white; padding:6px 12px; font-size:13px; font-weight:bold; border:none; border-radius:5px; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                                 استخراج القوائم <i class="fas fa-list-ul"></i>
+                                </button>
                             </div>
                         </div>
 
@@ -3532,7 +3535,130 @@ window.savePermissions = async function(data) {
     }
 };
 
+window.openPermissionsReportSelector = function() {
+    Swal.fire({
+        title: 'استخراج قوائم المرخص لهم',
+        html: `
+            <div style="text-align: right; direction: rtl; font-family: 'Cairo';">
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">اختر طريقة الفرز لاستخراج القائمة:</p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button onclick="window.generatePermittedReport('level')" class="btn" style="background: #4361ee; color: white; padding: 12px;">حسب الأطوار (ابتدائي، متوسط، ثانوي...) <i class="fas fa-layer-group"></i></button>
+                    <button onclick="window.generatePermittedReport('school')" class="btn" style="background: #2a9d8f; color: white; padding: 12px;">حسب المؤسسات (قائمة مفصلة) <i class="fas fa-school"></i></button>
+                </div>
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true
+    });
+};
 
+
+window.generatePermittedReport = async function(type) {
+    Swal.fire({ title: 'جاري تحضير القوائم...', didOpen: () => Swal.showLoading() });
+
+    try {
+        // 1. جلب التراخيص الحالية
+        const docRef = doc(db, "config", "edit_permissions");
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) return Swal.fire('تنبيه', 'لا توجد تراخيص مسجلة حالياً', 'info');
+
+        const { schools = [], ccps = [] } = docSnap.data();
+
+        // 2. تصفية الموظفين المشمولين بالتراخيص
+        const permitted = allData.filter(row => {
+            const hasSchoolPerm = schools.includes(row.schoolName);
+            const hasCcpPerm = ccps.includes(String(row.ccp).trim().replace(/^0+/, ''));
+            return hasSchoolPerm || hasCcpPerm;
+        });
+
+        if (permitted.length === 0) return Swal.fire('تنبيه', 'لا يوجد موظفون مطابقون للتراخيص الحالية', 'info');
+
+        // 3. منطق الفرز
+        let groupedData = {};
+        if (type === 'level') {
+            // فرز حسب الطور
+            permitted.forEach(emp => {
+                const level = emp.level || "غير محدد";
+                if (!groupedData[level]) groupedData[level] = [];
+                groupedData[level].push(emp);
+            });
+        } else {
+            // فرز حسب المؤسسة
+            permitted.forEach(emp => {
+                const school = emp.schoolName || "بدون مؤسسة";
+                if (!groupedData[school]) groupedData[school] = [];
+                groupedData[school].push(emp);
+            });
+        }
+
+        // 4. بناء محتوى الطباعة
+        const printDate = new Date().toLocaleDateString('ar-DZ');
+        let reportHtml = '';
+
+        Object.keys(groupedData).sort().forEach(groupTitle => {
+            const members = groupedData[groupTitle];
+            reportHtml += `
+                <div style="page-break-after: auto; margin-bottom: 30px;">
+                    <div style="background: #f8f9fa; border: 1px solid #000; padding: 10px; margin-bottom: 10px; font-weight: bold; font-size: 16px;">
+                        ${type === 'level' ? 'الطور: ' : 'المؤسسة: '} ${groupTitle} (العدد: ${members.length})
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #eee;">
+                                <th style="border: 1px solid #000; padding: 8px; width: 50px;">#</th>
+                                <th style="border: 1px solid #000; padding: 8px;">CCP</th>
+                                <th style="border: 1px solid #000; padding: 8px;">الاسم واللقب</th>
+                                <th style="border: 1px solid #000; padding: 8px;">الوظيفة</th>
+                                <th style="border: 1px solid #000; padding: 8px;">المؤسسة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${members.map((m, i) => `
+                                <tr>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: center;">${i+1}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">${m.ccp}</td>
+                                    <td style="border: 1px solid #000; padding: 6px;">${m.fmn} ${m.frn}</td>
+                                    <td style="border: 1px solid #000; padding: 6px;">${m.job || '-'}</td>
+                                    <td style="border: 1px solid #000; padding: 6px;">${m.schoolName}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        // 5. فتح نافذة الطباعة
+        const printWin = window.open('', '_blank');
+        printWin.document.write(`
+            <html dir="rtl" lang="ar">
+            <head>
+                <title>تقرير تراخيص التعديل</title>
+                <style>
+                    body { font-family: 'Cairo', sans-serif; padding: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                    table { font-size: 12px; }
+                    th { font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>مديرية التربية لولاية توقرت - مصلحة الرواتب</h2>
+                    <h3>تقرير الموظفين المسموح لهم بالتعديل (فرز حسب ${type === 'level' ? 'الأطوار' : 'المؤسسات'})</h3>
+                    <p>تاريخ الاستخراج: ${printDate}</p>
+                </div>
+                ${reportHtml}
+                <script>window.onload = function() { window.print(); }</script>
+            </body>
+            </html>
+        `);
+        printWin.document.close();
+        Swal.close();
+
+    } catch (e) {
+        Swal.fire('خطأ', 'فشل استخراج التقرير: ' + e.message, 'error');
+    }
+};
 
 // ==========================================
 // 📊 نظام متابعة حسابات التراخيص
