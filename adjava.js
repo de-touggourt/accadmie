@@ -3907,27 +3907,52 @@ window.printUnmodifiedPermissionsReport = function() {
     if (!window.tempTargetEmployees || window.tempTargetEmployees.length === 0) return;
     
     // 1. تصفية الموظفين لاستخراج من لم يقم بالتعديل فقط
-    const unmodifiedEmployees = window.tempTargetEmployees.filter(row => window.getRecordStatus(row) !== "modified");
+    let unmodifiedEmployees = window.tempTargetEmployees.filter(row => window.getRecordStatus(row) !== "modified");
 
     if (unmodifiedEmployees.length === 0) {
         Swal.fire('تنبيه', 'جميع الموظفين المرخص لهم قاموا بالتعديل بالفعل.', 'info');
         return;
     }
 
+    // 2. نظام الفرز المزدوج (الطور ثم المؤسسة)
+    const levelOrder = {
+        "ابتدائي": 1,
+        "متوسط": 2,
+        "ثانوي": 3,
+        "مديرية التربية": 4
+    };
+
+    unmodifiedEmployees.sort((a, b) => {
+        // تحديد وزن الطور
+        const weightA = levelOrder[a.level] || 5;
+        const weightB = levelOrder[b.level] || 5;
+
+        // أ) الفرز حسب الطور أولاً
+        if (weightA !== weightB) {
+            return weightA - weightB;
+        }
+        
+        // ب) إذا كانا في نفس الطور، نفرز حسب اسم المؤسسة
+        const schoolA = a.schoolName || "";
+        const schoolB = b.schoolName || "";
+        return schoolA.localeCompare(schoolB, "ar");
+    });
+
     const printDate = new Date().toLocaleDateString('ar-DZ');
     
+    // 3. بناء صفوف الجدول (تم استرجاع الترقيم وحذف رقم الهاتف)
     const printRows = unmodifiedEmployees.map((row, index) => {
         return `
             <tr>
-                <td>${index + 1}</td>
+                <td style="text-align: center;">${index + 1}</td>
                 <td style="font-weight:bold;" dir="ltr">${row.ccp}</td>
                 <td>${row.fmn} ${row.frn}</td>
                 <td>${row.schoolName || '-'}</td>
-                <td dir="ltr" style="text-align:center;">${row.phone || '-'}</td>
             </tr>
         `;
     }).join('');
 
+    // 4. بناء وطباعة النافذة
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
         <html dir="rtl" lang="ar">
@@ -3940,6 +3965,8 @@ window.printUnmodifiedPermissionsReport = function() {
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
                 th, td { border: 1px solid #000; padding: 10px; text-align: center; }
                 th { background-color: #e0e0e0 !important; font-weight: bold; }
+                /* لتجنب انقسام صفوف الموظفين بين صفحتين */
+                tr { page-break-inside: avoid; break-inside: avoid; }
                 @media print { body { -webkit-print-color-adjust: exact; } }
             </style>
         </head>
@@ -3954,10 +3981,9 @@ window.printUnmodifiedPermissionsReport = function() {
                 <thead>
                     <tr>
                         <th width="5%">الرقم</th>
-                        <th width="20%">CCP</th>
-                        <th width="30%">الاسم واللقب</th>
-                        <th width="30%">المؤسسة</th>
-                        <th width="15%">رقم الهاتف</th>
+                        <th width="25%">رقم الحساب (CCP)</th>
+                        <th width="35%">الاسم واللقب</th>
+                        <th width="35%">المؤسسة</th>
                     </tr>
                 </thead>
                 <tbody>
