@@ -3595,10 +3595,10 @@ window.generatePermittedReport = async function(type) {
         };
 
         // دالة مساعدة لإنشاء HTML الخاص بالجدول
-        const buildTableHtml = (title, members, pageBreakBefore) => {
-            const breakStyle = pageBreakBefore ? 'page-break-before: always; break-before: page;' : '';
+        const buildTableHtml = (title, members) => {
+            // تم إزالة فاصل الصفحات الإجباري من هنا لتتوالى الجداول بشكل طبيعي
             return `
-                <div style="${breakStyle} margin-bottom: 30px;">
+                <div style="margin-bottom: 30px;">
                     <div style="background: #f8f9fa; border: 1px solid #000; padding: 10px; margin-bottom: 10px; font-weight: bold; font-size: 16px;">
                         ${title} (العدد: ${members.length})
                     </div>
@@ -3628,7 +3628,7 @@ window.generatePermittedReport = async function(type) {
             `;
         };
 
-        // 3. التجميع الأساسي حسب "الطور" دائماً (لكي نتمكن من وضع الصفحات الفاصلة)
+        // 3. التجميع الأساسي حسب "الطور" دائماً
         let dataByLevel = {};
         permitted.forEach(emp => {
             const level = emp.level || "غير محدد";
@@ -3644,9 +3644,8 @@ window.generatePermittedReport = async function(type) {
 
         sortedLevels.forEach((levelKey, levelIndex) => {
             
-            // --- أ) إنشاء الصفحة الفاصلة الخاصة بهذا الطور ---
+            // --- أ) إنشاء الصفحة الفاصلة (الغلاف) الخاصة بهذا الطور ---
             const separatorText = getSeparatorText(levelKey);
-            // إضافة فاصل صفحات "قبل" الصفحة الفاصلة (إلا إذا كانت أول صفحة في الملف)
             const coverBreakBefore = levelIndex > 0 ? 'page-break-before: always; break-before: page;' : '';
 
             reportHtml += `
@@ -3659,11 +3658,9 @@ window.generatePermittedReport = async function(type) {
 
             // --- ب) إنشاء جداول البيانات تحت الصفحة الفاصلة ---
             if (type === 'level') {
-                // حالة 1: فرز حسب الطور (جدول واحد كبير لكل موظفي هذا الطور)
-                // لا نحتاج لفاصل صفحات قبله لأن الصفحة الفاصلة انتهت للتو بفاصل
-                reportHtml += buildTableHtml('الطور: ' + levelKey, dataByLevel[levelKey], false);
+                reportHtml += buildTableHtml('الطور: ' + levelKey, dataByLevel[levelKey]);
             } else {
-                // حالة 2: فرز حسب المؤسسات (نقسم موظفي هذا الطور على مؤسساتهم)
+                // تجميع حسب المؤسسات داخل نفس الطور
                 let schoolsInsideLevel = {};
                 dataByLevel[levelKey].forEach(emp => {
                     const school = emp.schoolName || "بدون مؤسسة";
@@ -3671,11 +3668,9 @@ window.generatePermittedReport = async function(type) {
                     schoolsInsideLevel[school].push(emp);
                 });
 
-                Object.keys(schoolsInsideLevel).sort().forEach((schoolKey, schoolIndex) => {
-                    // المؤسسة الأولى في هذا الطور لا تحتاج فاصل لأنها تأتي مباشرة بعد الصفحة الفاصلة
-                    // أما المؤسسات التي تليها فتحتاج صفحة مستقلة
-                    const needsBreak = schoolIndex > 0;
-                    reportHtml += buildTableHtml('المؤسسة: ' + schoolKey, schoolsInsideLevel[schoolKey], needsBreak);
+                // عرض المؤسسات متتالية دون فاصل صفحات بينها
+                Object.keys(schoolsInsideLevel).sort().forEach(schoolKey => {
+                    reportHtml += buildTableHtml('المؤسسة: ' + schoolKey, schoolsInsideLevel[schoolKey]);
                 });
             }
         });
@@ -3697,7 +3692,7 @@ window.generatePermittedReport = async function(type) {
                         body { padding: 0; }
                         /* ضمان عدم انقسام الصف داخل الجدول بين صفحتين */
                         tr { page-break-inside: avoid; break-inside: avoid; }
-                        .header { display: none; } /* يمكنك إخفاء الهيدر الرئيسي إذا أردت الاعتماد على الصفحات الفاصلة */
+                        .header { display: none; }
                     }
                 </style>
             </head>
