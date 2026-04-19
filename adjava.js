@@ -133,7 +133,7 @@ const SECURE_DASHBOARD_HTML = `
             <button onclick="window.cancelFollowUp()" class="btn" style="background: #6c757d; color: white; padding: 6px 12px; font-size: 13px;" title="إيقاف تلوين السجلات">إلغاء المتابعة <i class="fas fa-times-circle"></i></button>
             
             <span id="activeFollowUpLabel" style="font-size: 13px; font-weight: bold; color: #28a745; display: none; margin-right: 10px;">
-                <i class="fas fa-broadcast-tower"></i> المراقبة نشطة بدءاً من: <span id="followUpDateText" style="direction: ltr; display: inline-block;"></span>
+                <i class="fas fa-broadcast-tower"></i> المراقبة نشطة بدءاً من: <span id="followUpDateText" style="display: inline-block; direction: rtl; unicode-bidi: embed;"></span>
             </span>
         </div>
     </div>
@@ -310,6 +310,7 @@ window.getSafeTimestamp = function(dateValue) {
 let followUpStartDate = null; 
 
 // دالة تحميل إعدادات المتابعة
+// دالة تحميل إعدادات المتابعة (تعمل عند دخول الصفحة)
 window.loadFollowUpSettings = async function() {
     try {
         const docRef = doc(db, "config", "tracking_settings");
@@ -319,7 +320,7 @@ window.loadFollowUpSettings = async function() {
             const input = document.getElementById("followUpDateInput");
             if (input) input.value = window.followUpStartDate;
             
-            // التنسيق الاحترافي: "17 أفريل 2026"
+            // التنسيق الاحترافي
             const options = { day: 'numeric', month: 'long', year: 'numeric' };
             const formattedDate = new Date(window.followUpStartDate).toLocaleDateString('ar-DZ', options);
             
@@ -333,33 +334,37 @@ window.loadFollowUpSettings = async function() {
     } catch (e) { console.error("Error loading tracking settings:", e); }
 };
 
-// دالة حفظ وتفعيل التاريخ
+// دالة حفظ وتفعيل التاريخ (تعمل فورياً عند الضغط على الزر)
 window.setFollowUpDate = async function() {
     const selectedDate = document.getElementById("followUpDateInput").value;
-    if (!selectedDate) return Swal.fire("تنبيه", "يرجى اختيار تاريخ أولاً", "warning");
+    if (!selectedDate) {
+        return Swal.fire("تنبيه", "يرجى اختيار تاريخ أولاً لبدء المتابعة", "warning");
+    }
 
-    Swal.fire({ title: 'جاري التفعيل...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'جاري تفعيل نظام المتابعة...', didOpen: () => Swal.showLoading() });
 
     try {
         const docRef = doc(db, "config", "tracking_settings");
         await setDoc(docRef, { startDate: selectedDate }, { merge: true });
         window.followUpStartDate = selectedDate;
         
+        // 🚀 تحديث النص فوراً في الواجهة بدون تحديث الصفحة
         const options = { day: 'numeric', month: 'long', year: 'numeric' };
         const formattedDate = new Date(selectedDate).toLocaleDateString('ar-DZ', options);
-        
+
         const lbl = document.getElementById("activeFollowUpLabel");
         const txt = document.getElementById("followUpDateText");
         if (lbl && txt) {
-            txt.innerText = formattedDate;
-            lbl.style.display = 'inline-block';
+            txt.innerText = formattedDate; // يغير النص لحظياً
+            lbl.style.display = 'inline-block'; // يظهر الشريط الأخضر فوراً
         }
         
         Swal.fire({ icon: 'success', title: 'تم التفعيل', text: `بدء المراقبة من: ${formattedDate}`, timer: 2000, showConfirmButton: false });
-        window.applyFilters();
-    } catch (e) { Swal.fire("خطأ", e.message, "error"); }
+        window.applyFilters(); // تحديث الجدول فوراً لعكس الألوان
+    } catch (e) {
+        Swal.fire("خطأ", "فشل حفظ الإعدادات: " + e.message, "error");
+    }
 };
-
 
 // ==========================================
 // 🛑 دالة إلغاء المتابعة وتصفير الألوان
