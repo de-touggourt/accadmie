@@ -3573,66 +3573,111 @@ window.generatePermittedReport = async function(type) {
 
         if (permitted.length === 0) return Swal.fire('تنبيه', 'لا يوجد موظفون مطابقون للتراخيص الحالية', 'info');
 
-        // 3. منطق الفرز
-        let groupedData = {};
-        if (type === 'level') {
-            // فرز حسب الطور
-            permitted.forEach(emp => {
-                const level = emp.level || "غير محدد";
-                if (!groupedData[level]) groupedData[level] = [];
-                groupedData[level].push(emp);
-            });
-        } else {
-            // فرز حسب المؤسسة
-            permitted.forEach(emp => {
-                const school = emp.schoolName || "بدون مؤسسة";
-                if (!groupedData[school]) groupedData[school] = [];
-                groupedData[school].push(emp);
-            });
-        }
-
-        // 4. بناء محتوى الطباعة
-        const printDate = new Date().toLocaleDateString('ar-DZ');
-        let reportHtml = '';
-
-        // ترتيب المجموعات أبجدياً
-        const groups = Object.keys(groupedData).sort();
-
-        groups.forEach((groupTitle, index) => {
-            const members = groupedData[groupTitle];
+        // دالة مساعدة لمعالجة نصوص الصفحات الفاصلة تلقائياً
+        const getSeparatorText = (levelStr) => {
+            let str = levelStr || "غير محدد";
+            let baseName = str;
             
-            // إضافة فاصل صفحات لكل مجموعة ما عدا المجموعة الأولى
-            const pageBreakStyle = index > 0 ? 'page-break-before: always; break-before: page;' : '';
+            // توحيد المسميات
+            if (str.includes("ابتدائي")) baseName = "الإبتدائي";
+            else if (str.includes("متوسط")) baseName = "المتوسط";
+            else if (str.includes("ثانوي")) baseName = "الثانوي";
+            else if (str.includes("مديرية") || str.includes("تربية")) baseName = "مديرية التربية";
 
-            reportHtml += `
-                <div style="${pageBreakStyle} margin-bottom: 30px;">
+            // تخصيص النص بناءً على نوع الطباعة (طور أو مؤسسة)
+            if (type === 'level') {
+                if (baseName === "مديرية التربية" || baseName === "غير محدد") return "موظفو " + baseName;
+                return "موظفو التعليم " + baseName;
+            } else {
+                if (baseName === "مديرية التربية" || baseName === "غير محدد") return "قائمة المؤسسات : " + baseName;
+                return "قائمة المؤسسات : " + baseName;
+            }
+        };
+
+        // دالة مساعدة لإنشاء HTML الخاص بالجدول
+        const buildTableHtml = (title, members, pageBreakBefore) => {
+            const breakStyle = pageBreakBefore ? 'page-break-before: always; break-before: page;' : '';
+            return `
+                <div style="${breakStyle} margin-bottom: 30px;">
                     <div style="background: #f8f9fa; border: 1px solid #000; padding: 10px; margin-bottom: 10px; font-weight: bold; font-size: 16px;">
-                        ${type === 'level' ? 'الطور: ' : 'المؤسسة: '} ${groupTitle} (العدد: ${members.length})
+                        ${title} (العدد: ${members.length})
                     </div>
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="background: #eee;">
-                                <th style="border: 1px solid #000; padding: 8px; width: 50px;">#</th>
-                                <th style="border: 1px solid #000; padding: 8px;">CCP</th>
-                                <th style="border: 1px solid #000; padding: 8px;">الاسم واللقب</th>
-                                <th style="border: 1px solid #000; padding: 8px;">الوظيفة</th>
-                                <th style="border: 1px solid #000; padding: 8px;">المؤسسة</th>
+                                <th style="border: 1px solid #000; padding: 8px; width: 50px; text-align: center;">#</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">CCP</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right;">الاسم واللقب</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right;">الوظيفة</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right;">المؤسسة</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${members.map((m, i) => `
                                 <tr>
                                     <td style="border: 1px solid #000; padding: 6px; text-align: center;">${i+1}</td>
-                                    <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">${m.ccp}</td>
-                                    <td style="border: 1px solid #000; padding: 6px;">${m.fmn} ${m.frn}</td>
-                                    <td style="border: 1px solid #000; padding: 6px;">${m.job || '-'}</td>
-                                    <td style="border: 1px solid #000; padding: 6px;">${m.schoolName}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; font-family: monospace; font-size: 13px;">${m.ccp}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: right;">${m.fmn} ${m.frn}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: right;">${m.job || '-'}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: right;">${m.schoolName}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
                 </div>
             `;
+        };
+
+        // 3. التجميع الأساسي حسب "الطور" دائماً (لكي نتمكن من وضع الصفحات الفاصلة)
+        let dataByLevel = {};
+        permitted.forEach(emp => {
+            const level = emp.level || "غير محدد";
+            if (!dataByLevel[level]) dataByLevel[level] = [];
+            dataByLevel[level].push(emp);
+        });
+
+        // 4. بناء محتوى الطباعة
+        const printDate = new Date().toLocaleDateString('ar-DZ');
+        let reportHtml = '';
+
+        const sortedLevels = Object.keys(dataByLevel).sort();
+
+        sortedLevels.forEach((levelKey, levelIndex) => {
+            
+            // --- أ) إنشاء الصفحة الفاصلة الخاصة بهذا الطور ---
+            const separatorText = getSeparatorText(levelKey);
+            // إضافة فاصل صفحات "قبل" الصفحة الفاصلة (إلا إذا كانت أول صفحة في الملف)
+            const coverBreakBefore = levelIndex > 0 ? 'page-break-before: always; break-before: page;' : '';
+
+            reportHtml += `
+                <div style="${coverBreakBefore} page-break-after: always; break-after: page; padding-top: 35vh; text-align: center;">
+                    <div style="display: inline-block; border: 4px double #000; padding: 40px 60px; background-color: #f8f9fa;">
+                        <h1 style="font-size: 40px; margin: 0; color: #333;">${separatorText}</h1>
+                    </div>
+                </div>
+            `;
+
+            // --- ب) إنشاء جداول البيانات تحت الصفحة الفاصلة ---
+            if (type === 'level') {
+                // حالة 1: فرز حسب الطور (جدول واحد كبير لكل موظفي هذا الطور)
+                // لا نحتاج لفاصل صفحات قبله لأن الصفحة الفاصلة انتهت للتو بفاصل
+                reportHtml += buildTableHtml('الطور: ' + levelKey, dataByLevel[levelKey], false);
+            } else {
+                // حالة 2: فرز حسب المؤسسات (نقسم موظفي هذا الطور على مؤسساتهم)
+                let schoolsInsideLevel = {};
+                dataByLevel[levelKey].forEach(emp => {
+                    const school = emp.schoolName || "بدون مؤسسة";
+                    if (!schoolsInsideLevel[school]) schoolsInsideLevel[school] = [];
+                    schoolsInsideLevel[school].push(emp);
+                });
+
+                Object.keys(schoolsInsideLevel).sort().forEach((schoolKey, schoolIndex) => {
+                    // المؤسسة الأولى في هذا الطور لا تحتاج فاصل لأنها تأتي مباشرة بعد الصفحة الفاصلة
+                    // أما المؤسسات التي تليها فتحتاج صفحة مستقلة
+                    const needsBreak = schoolIndex > 0;
+                    reportHtml += buildTableHtml('المؤسسة: ' + schoolKey, schoolsInsideLevel[schoolKey], needsBreak);
+                });
+            }
         });
 
         // 5. فتح نافذة الطباعة
@@ -3642,22 +3687,23 @@ window.generatePermittedReport = async function(type) {
             <head>
                 <title>تقرير تراخيص التعديل</title>
                 <style>
-                    body { font-family: 'Cairo', sans-serif; padding: 20px; }
+                    body { font-family: 'Cairo', sans-serif; padding: 20px; margin: 0; }
                     .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-                    table { font-size: 12px; }
-                    th { font-weight: bold; }
+                    table { font-size: 13px; }
+                    th { font-weight: bold; background-color: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    
                     /* إعدادات الطباعة الأساسية */
                     @media print {
                         body { padding: 0; }
                         /* ضمان عدم انقسام الصف داخل الجدول بين صفحتين */
                         tr { page-break-inside: avoid; break-inside: avoid; }
+                        .header { display: none; } /* يمكنك إخفاء الهيدر الرئيسي إذا أردت الاعتماد على الصفحات الفاصلة */
                     }
                 </style>
             </head>
             <body>
                 <div class="header">
-                    <h2>مديرية التربية لولاية توقرت - مصلحة الرواتب</h2>
-                    <h3>تقرير الموظفين المسموح لهم بالتعديل (فرز حسب ${type === 'level' ? 'الأطوار' : 'المؤسسات'})</h3>
+                    <h2>مديرية التربية - مصلحة الرواتب</h2>
                     <p>تاريخ الاستخراج: ${printDate}</p>
                 </div>
                 ${reportHtml}
