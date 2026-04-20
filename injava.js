@@ -508,7 +508,7 @@ window.institutionsByDaaira = {
 // --- دوال مساعدة ---
 const valNum = (e) => e.value = e.value.replace(/\D/g, '');
 const valAr = (e) => e.value = e.value.replace(/[^\u0600-\u06FF\s]/g, '');
-const valFr = (e) => e.value = e.value.replace(/[^a-zA-Z\s\-']/g, '').toUpperCase();
+const valFr = (e) => e.value = e.value.replace(/[^a-zA-Z\s]/g, '').toUpperCase();
 const getJob = (c) => gradeMap[c] || "غير محدد";
 
 const removeError = (input) => {
