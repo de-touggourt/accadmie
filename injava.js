@@ -345,7 +345,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // 🛑🛑🛑 استبدل هذا الرابط برابط السكريبت الخاص بك 🛑🛑🛑
-const scriptURL = "https://script.google.com/macros/s/AKfycbwViue1zOQSiFwO9gAGYONKzB8lUAZTWeDoH4aa7lAsqXLMZLfUKZ-HwSHimhMprZj5Og/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbxiT-_239If_Cd0damO9jXfLQKWBpJt2G8oIDdyD-4snKdAQoJGW3vBj6gE9TBBl3b5_w/exec";
 
 // --- خريطة الرتب ---
 const gradeMap = {
