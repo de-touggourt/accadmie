@@ -251,7 +251,7 @@ const SECURE_DASHBOARD_HTML = `
 `;
 
 // --- المتغيرات العامة ---
-const scriptURL = "https://script.google.com/macros/s/AKfycbzKW_MjD27Sh9S6bW8BFltWqNLJalgXW2MgptxtgaxTEiwpDFUSY-hQFNFCtnEkGQFhig/exec"; 
+const scriptURL = "https://script.google.com/macros/s/AKfycbxiT-_239If_Cd0damO9jXfLQKWBpJt2G8oIDdyD-4snKdAQoJGW3vBj6gE9TBBl3b5_w/exec"; 
 
 // متغيرات البيانات والصفحات
 let allData = [];
