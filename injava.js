@@ -756,8 +756,8 @@ function showReviewModal(data, context) {
         <tr><th>NIN</th><td>${data.nin}</td></tr>
         <tr><th>اللقب</th><td>${data.fmn}</td></tr>
         <tr><th>الاسم</th><td>${data.frn}</td></tr>
-        <tr><th>اللقب (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.fmn_la || ''}</td></tr>
-        <tr><th>الاسم (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.frn_la || ''}</td></tr>
+        <tr><th>اللقب (باللاتينية)</th><td dir="ltr" style="text-align: right;">${data.fmn_la || ''}</td></tr>
+        <tr><th>الاسم (باللاتينية)</th><td dir="ltr" style="text-align: right;">${data.frn_la || ''}</td></tr>
         <tr><th>تاريخ الميلاد</th><td>${fmtDate(data.diz)}</td></tr>
         <tr><th>الرتبة</th><td>${getJob(data.gr)}</td></tr>
         <tr><th>المؤسسة</th><td>${data.schoolName}</td></tr>
@@ -872,8 +872,8 @@ function showConfirmedModal(data) {
         <tr><th>NIN</th><td>${data.nin}</td></tr>
         <tr><th>اللقب</th><td>${data.fmn}</td></tr>
         <tr><th>الاسم</th><td>${data.frn}</td></tr>
-        <tr><th>اللقب (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.fmn_la || ''}</td></tr>
-        <tr><th>الاسم (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.frn_la || ''}</td></tr>
+        <tr><th>اللقب (باللاتينية)</th><td dir="ltr" style="text-align: right;">${data.fmn_la || ''}</td></tr>
+        <tr><th>الاسم (باللاتينية)</th><td dir="ltr" style="text-align: right;">${data.frn_la || ''}</td></tr>
         <tr><th>تاريخ الميلاد</th><td>${fmtDate(data.diz)}</td></tr>
         <tr><th>الرتبة</th><td>${getJob(data.gr)}</td></tr>
         <tr><th>المؤسسة</th><td>${data.schoolName}</td></tr>
