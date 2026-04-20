@@ -312,6 +312,17 @@ const SECURE_INTERFACE_HTML = `
         </div>
       </div>
 
+      <div class="info-grid">
+        <div class="outer-group">
+          <label>اللقب باللاتينية</label>
+          <input type="text" id="fmnLaField" class="editable-field" oninput="valFr(this); removeError(this)" dir="ltr" placeholder="Nom">
+        </div>
+        <div class="outer-group">
+          <label>الاسم باللاتينية</label>
+          <input type="text" id="frnLaField" class="editable-field" oninput="valFr(this); removeError(this)" dir="ltr" placeholder="Prénom">
+        </div>
+      </div>
+
       <button class="btn-main" onclick="submitRegistration()">حفظ وتأكيد المعلومات</button>
       <button class="btn-main" style="background: #6c757d; margin-top: 10px;" onclick="resetInterface()">إلغاء / خروج</button>
     </div>
@@ -334,7 +345,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // 🛑🛑🛑 استبدل هذا الرابط برابط السكريبت الخاص بك 🛑🛑🛑
-const scriptURL = "https://script.google.com/macros/s/AKfycbzKW_MjD27Sh9S6bW8BFltWqNLJalgXW2MgptxtgaxTEiwpDFUSY-hQFNFCtnEkGQFhig/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbwViue1zOQSiFwO9gAGYONKzB8lUAZTWeDoH4aa7lAsqXLMZLfUKZ-HwSHimhMprZj5Og/exec";
 
 // --- خريطة الرتب ---
 const gradeMap = {
@@ -497,6 +508,7 @@ window.institutionsByDaaira = {
 // --- دوال مساعدة ---
 const valNum = (e) => e.value = e.value.replace(/\D/g, '');
 const valAr = (e) => e.value = e.value.replace(/[^\u0600-\u06FF\s]/g, '');
+const valFr = (e) => e.value = e.value.replace(/[^a-zA-Z\s\-']/g, '').toUpperCase();
 const getJob = (c) => gradeMap[c] || "غير محدد";
 
 const removeError = (input) => {
@@ -744,6 +756,8 @@ function showReviewModal(data, context) {
         <tr><th>NIN</th><td>${data.nin}</td></tr>
         <tr><th>اللقب</th><td>${data.fmn}</td></tr>
         <tr><th>الاسم</th><td>${data.frn}</td></tr>
+        <tr><th>اللقب (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.fmn_la || ''}</td></tr>
+        <tr><th>الاسم (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.frn_la || ''}</td></tr>
         <tr><th>تاريخ الميلاد</th><td>${fmtDate(data.diz)}</td></tr>
         <tr><th>الرتبة</th><td>${getJob(data.gr)}</td></tr>
         <tr><th>المؤسسة</th><td>${data.schoolName}</td></tr>
@@ -858,6 +872,8 @@ function showConfirmedModal(data) {
         <tr><th>NIN</th><td>${data.nin}</td></tr>
         <tr><th>اللقب</th><td>${data.fmn}</td></tr>
         <tr><th>الاسم</th><td>${data.frn}</td></tr>
+        <tr><th>اللقب (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.fmn_la || ''}</td></tr>
+        <tr><th>الاسم (باللاتينية)</th><td dir="ltr" style="text-align: right; font-weight:bold;">${data.frn_la || ''}</td></tr>
         <tr><th>تاريخ الميلاد</th><td>${fmtDate(data.diz)}</td></tr>
         <tr><th>الرتبة</th><td>${getJob(data.gr)}</td></tr>
         <tr><th>المؤسسة</th><td>${data.schoolName}</td></tr>
@@ -955,6 +971,8 @@ function fillForm(fbData, savedData) {
   document.getElementById("assField").value = d.ass || '';
   document.getElementById("fmnField").value = d.fmn || '';
   document.getElementById("frnField").value = d.frn || '';
+  document.getElementById("fmnLaField").value = d.fmn_la || '';
+  document.getElementById("frnLaField").value = d.frn_la || '';
   document.getElementById("dizField").value = fmtDate(d.diz);
   document.getElementById("jobField").value = getJob(d.gr);
   document.getElementById("mtrField").value = d.mtr || '';
@@ -1005,10 +1023,12 @@ function fillForm(fbData, savedData) {
 
 // 7️⃣ إرسال التسجيل
 async function submitRegistration() {
- const fields = {
+const fields = {
     ass: document.getElementById("assField"), 
     fmn: document.getElementById("fmnField"),
     frn: document.getElementById("frnField"),
+    fmn_la: document.getElementById("fmnLaField"), 
+    frn_la: document.getElementById("frnLaField"), 
     diz: document.getElementById("dizField"),
     level: document.getElementById("levelField"),
     daaira: document.getElementById("daairaField"),
@@ -1085,6 +1105,8 @@ async function submitRegistration() {
   p.append("job", document.getElementById("jobField").value);
   p.append("fmn", fields.fmn.value);
   p.append("frn", fields.frn.value);
+  p.append("fmn_la", fields.fmn_la.value); 
+  p.append("frn_la", fields.frn_la.value); 
   p.append("diz", fields.diz.value);
   p.append("phone", fields.phone.value);
   p.append("nin", fields.nin.value);
@@ -1159,6 +1181,8 @@ function printA4(d) {
   table.innerHTML = `
     <tr><th>اللقب</th><td>${d.fmn}</td></tr>
     <tr><th>الاسم</th><td>${d.frn}</td></tr>
+    <tr><th>اللقب باللاتينية</th><td dir="ltr" style="text-align: right;">${d.fmn_la || ''}</td></tr>
+    <tr><th>الاسم باللاتينية</th><td dir="ltr" style="text-align: right;">${d.frn_la || ''}</td></tr>
     <tr><th>تاريخ الميلاد</th><td>${fmtDate(d.diz)}</td></tr>
     <tr><th>رقم الحساب البريدي (CCP)</th><td>${d.ccp}</td></tr>
     <tr><th>رقم الضمان الاجتماعي</th><td>${d.ass}</td></tr>
@@ -1731,6 +1755,8 @@ function generateBulkForms(data, schoolName) {
             <table class="data-table">
                 <tr><th>اللقب</th><td>${d.fmn}</td></tr>
                 <tr><th>الاسم</th><td>${d.frn}</td></tr>
+                <tr><th>اللقب باللاتينية</th><td dir="ltr" style="text-align: right;">${d.fmn_la || ''}</td></tr>
+                <tr><th>الاسم باللاتينية</th><td dir="ltr" style="text-align: right;">${d.frn_la || ''}</td></tr>
                 <tr><th>تاريخ الميلاد</th><td>${fmtDate(d.diz)}</td></tr>
                 <tr><th>رقم الحساب البريدي (CCP)</th><td>${d.ccp}</td></tr>
                 <tr><th>رقم الضمان الاجتماعي</th><td>${d.ass}</td></tr>
@@ -2006,6 +2032,5 @@ window.goToProfessionalCardsMain = function() {
     // الانتقال إلى الصفحة في نفس التبويب (قم بتغيير cards.html إلى اسم صفحتك الفعلي)
     window.location.href = "card2.html"; 
 };
-
 
 
