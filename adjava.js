@@ -4070,7 +4070,7 @@ window.exportPermittedExcel = function() {
     // المرور على جميع الأسطر في جدول التراخيص لاستخراج البيانات
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
-        // الخلايا: 0=CCP, 1=الاسم، 2=المؤسسة، 3=زر الحذف (نتجاهله)
+        // الخلايا: 0=CCP, 1=الاسم، 2=المؤسسة
         const ccp = cells[0].innerText.trim();
         const name = cells[1].innerText.trim();
         const school = cells[2].innerText.trim();
@@ -4091,9 +4091,9 @@ window.exportPermittedExcel = function() {
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
     
-    // إنشاء اسم الملف مع تاريخ اليوم
+    // إنشاء اسم الملف مع تاريخ اليوم (تم الإصلاح هنا باستخدام الدمج الآمن)
     const dateStr = new Date().toISOString().slice(0,10);
-    link.download = \`قائمة_الحسابات_المرخصة_\${dateStr}.xls\`;
+    link.download = 'قائمة_الحسابات_المرخصة_' + dateStr + '.xls';
     
     // بدء التحميل
     document.body.appendChild(link);
