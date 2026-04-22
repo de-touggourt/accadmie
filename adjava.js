@@ -598,30 +598,28 @@ window.applyFilters = function() {
         const isConfirmed = String(row.confirmed).toLowerCase() === "true";
         const recordType = window.getRecordStatus(row); 
 
-        // ==========================================
-        // 2. فلتر الحالة (المنطق الذي طلبته بالضبط)
+      // ==========================================
+        // 2. فلتر الحالة (المنطق الجديد - فصل تام)
         // ==========================================
         if (statusFilter === "confirmed") {
             matchesStatus = isConfirmed;
         } else if (statusFilter === "pending") {
             matchesStatus = !isConfirmed;
         } else if (statusFilter === "new") {
-            // التسجيلات الجديدة: إظهار أي نشاط جديد (تسجيل أو تعديل) بعد تاريخ المراقبة
+            // التسجيلات الجديدة: فقط من سجل لأول مرة بعد تاريخ المراقبة
             if (window.followUpStartDate) {
                 const followDate = new Date(window.followUpStartDate);
                 followDate.setHours(0, 0, 0, 0); 
                 const followTime = followDate.getTime();
                 
                 const regTime = window.getSafeTimestamp(row.date);
-                const editTime = window.getSafeTimestamp(row.date_edit);
                 
-                // يكفي أن يكون التسجيل أو التعديل قد تم بعد تاريخ المراقبة
-                matchesStatus = (regTime >= followTime) || (editTime >= followTime);
+                matchesStatus = (regTime >= followTime); // يعتمد على تاريخ التسجيل فقط
             } else {
                 matchesStatus = false;
             }
         } else if (statusFilter === "modified") {
-            // السجلات المعدلة: إظهار من قام بالتعديل فعلياً فقط
+            // السجلات المعدلة: فقط من قام بتعديل بياناته بعد تاريخ المراقبة
             if (window.followUpStartDate) {
                 const followDate = new Date(window.followUpStartDate);
                 followDate.setHours(0, 0, 0, 0); 
@@ -630,7 +628,7 @@ window.applyFilters = function() {
                 const regTime = window.getSafeTimestamp(row.date);
                 const editTime = window.getSafeTimestamp(row.date_edit);
                 
-                matchesStatus = (editTime >= followTime && editTime > regTime + 120000);
+                matchesStatus = (editTime >= followTime && editTime > regTime + 120000); // يعتمد على تاريخ التعديل فقط
             } else {
                 matchesStatus = false;
             }
