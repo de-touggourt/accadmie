@@ -680,6 +680,7 @@ window.renderTable = function(data) {
   tbody.innerHTML = "";
 
   if(data.length === 0) {
+    // تغيير colspan من 8 إلى 10
     tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
     return;
   }
@@ -692,7 +693,7 @@ window.renderTable = function(data) {
       : `<span class="badge badge-pending"><i class="fas fa-clock"></i> غير مؤكد</span>`;
 
     let dateStr = window.fmtDate(row.date_edit);
-    let dobStr = window.fmtDate(row.diz); // استخراج وتنسيق تاريخ الميلاد
+    let dobStr = window.fmtDate(row.diz); // جلب وتنسيق تاريخ الميلاد
 
     const gradeJobHtml = `
       <div class="grade-job-cell">
@@ -701,28 +702,24 @@ window.renderTable = function(data) {
       </div>
     `;
 
-    // تحديد لون السطر بناءً على حالة التسجيل ونظام المتابعة
+    // تحديد لون السطر
     const recordType = window.getRecordStatus(row);
     let rowBgColor = "";
-    
-    if (recordType === "new") {
-        rowBgColor = "background-color: #e8f5e9;";
-    } else if (recordType === "modified") {
-        rowBgColor = "background-color: #fff3cd;";
-    }
+    if (recordType === "new") rowBgColor = "background-color: #e8f5e9;";
+    else if (recordType === "modified") rowBgColor = "background-color: #fff3cd;";
 
     const tr = document.createElement("tr");
     if (rowBgColor) tr.setAttribute("style", rowBgColor);
     
-    // ترتيب الخلايا (td) حسب طلبك بالضبط
+    // الترتيب الدقيق: 10 خلايا تطابق الـ 10 عناوين في HTML
     tr.innerHTML = `
       <td style="font-weight:700; font-family:'Cairo';">${row.ccp}</td>
-      <td style="font-weight:bold;">${row.fmn} ${row.frn}</td>
+      <td style="font-weight:bold;">${row.fmn || ''} ${row.frn || ''}</td>
       <td style="font-weight:normal; text-transform:uppercase;">${row.fmn_la || ''} ${row.frn_la || ''}</td>
       <td style="direction:ltr;">${dobStr}</td>
       <td>${gradeJobHtml}</td>
       <td>${row.schoolName || '-'}</td>
-      <td style="direction:ltr; text-align:right;">${row.phone}</td>
+      <td style="direction:ltr; text-align:right;">${row.phone || ''}</td>
       <td>${statusBadge}</td>
       <td style="font-size:12px; font-weight:600; direction:ltr;">${dateStr}</td>
       <td>
