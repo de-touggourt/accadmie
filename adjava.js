@@ -776,10 +776,13 @@ window.saveToFirebaseDB = function(formData) {
     .catch((error) => { Swal.fire('خطأ', 'فشل الحفظ: ' + error.message, 'error'); });
 };
 
-window.downloadExcel = async function() {
+// =================================================================
+// 1. الدالة الأصلية للتحميل الكامل (قمنا بتغيير اسمها فقط لتعمل في الخلفية)
+// =================================================================
+window.downloadFullDatabaseExcel = async function() {
   Swal.fire({
     title: 'جاري تحضير ملف Excel...',
-    html: 'يرجى الانتظار، يتم جلب البيانات وتشفير الملف.',
+    html: 'يرجى الانتظار، يتم جلب البيانات وتشفير الملف من قاعدة البيانات.',
     allowOutsideClick: false,
     didOpen: () => { Swal.showLoading(); }
   });
@@ -811,6 +814,135 @@ window.downloadExcel = async function() {
   } catch (error) {
     Swal.fire({icon: 'error', title: 'خطأ', text: 'فشل إنشاء ملف Excel: ' + error.message});
   }
+};
+
+// =================================================================
+// 2. الدالة الرئيسية المرتبطة بالزر (نافذة الخيارات الجديدة)
+// =================================================================
+window.downloadExcel = function() {
+    Swal.fire({
+        title: '<strong>خيارات استخراج Excel</strong>',
+        html: `
+            <div style="display: flex; flex-direction: column; gap: 15px; padding: 10px; font-family: 'Cairo', sans-serif;">
+                
+                <button onclick="Swal.close(); window.downloadFullDatabaseExcel()" class="btn" style="background-color: #198754; color: white; padding: 15px; font-size: 16px; border-radius: 8px; display: flex; align-items: center; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.3s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    <i class="fas fa-database fa-2x"></i> 
+                    <div style="text-align: right; flex-grow: 1;">
+                        <strong style="font-size: 17px;">تحميل قاعدة البيانات بالكامل</strong>
+                        <div style="font-size: 12px; opacity: 0.9;">تصدير جميع الموظفين من الخادم مباشرة (ملف أصلي)</div>
+                    </div>
+                </button>
+
+                <button onclick="Swal.close(); window.downloadFilteredExcel('new')" class="btn" style="background-color: #0d6efd; color: white; padding: 15px; font-size: 16px; border-radius: 8px; display: flex; align-items: center; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.3s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    <i class="fas fa-user-plus fa-2x"></i> 
+                    <div style="text-align: right; flex-grow: 1;">
+                        <strong style="font-size: 17px;">تحميل التسجيلات الجديدة</strong>
+                        <div style="font-size: 12px; opacity: 0.9;">من سجلوا بعد تفعيل نظام المتابعة</div>
+                    </div>
+                </button>
+
+                <button onclick="Swal.close(); window.downloadFilteredExcel('modified')" class="btn" style="background-color: #fd7e14; color: white; padding: 15px; font-size: 16px; border-radius: 8px; display: flex; align-items: center; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.3s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    <i class="fas fa-user-edit fa-2x"></i> 
+                    <div style="text-align: right; flex-grow: 1;">
+                        <strong style="font-size: 17px;">تحميل السجلات المعدلة</strong>
+                        <div style="font-size: 12px; opacity: 0.9;">الموظفون الذين قاموا بتعديل بياناتهم مؤخراً</div>
+                    </div>
+                </button>
+
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: '550px',
+        customClass: { popup: 'swal-wide' }
+    });
+};
+
+// =================================================================
+// 3. دالة الاستخراج السريع للتسجيلات الجديدة والمعدلة
+// =================================================================
+window.downloadFilteredExcel = function(type) {
+    let targetData = [];
+    let reportTitle = "";
+    let fileName = "";
+    const dateStr = new Date().toISOString().slice(0,10);
+
+    // تصفية البيانات باستخدام نظام المتابعة الذكي الخاص بك
+    if (type === 'new') {
+        targetData = allData.filter(row => window.getRecordStatus(row) === "new");
+        reportTitle = "قائمة التسجيلات الجديدة";
+        fileName = 'التسجيلات_الجديدة_' + dateStr + '.xls';
+    } else if (type === 'modified') {
+        targetData = allData.filter(row => window.getRecordStatus(row) === "modified");
+        reportTitle = "قائمة السجلات المعدلة";
+        fileName = 'السجلات_المعدلة_' + dateStr + '.xls';
+    }
+
+    if (targetData.length === 0) {
+        return Swal.fire('تنبيه', 'لا توجد بيانات مطابقة لهذا الخيار حالياً.', 'info');
+    }
+
+    // تجهيز هيكل ملف Excel
+    let tableContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                td { mso-number-format:"\\@"; } /* إجبار الخلايا على أن تكون نصاً */
+                table { border-collapse: collapse; width: 100%; font-family: 'Arial', sans-serif; }
+                th { background-color: #2c3e50; color: #ffffff; font-weight: bold; border: 1px solid #dddddd; padding: 10px; text-align: center; }
+                td { border: 1px solid #dddddd; padding: 8px; text-align: right; }
+                .title { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #333; }
+            </style>
+        </head>
+        <body dir="rtl">
+            <div class="title">${reportTitle} - مديرية التربية لولاية توقرت</div>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>الرقم</th>
+                        <th>رقم الحساب (CCP)</th>
+                        <th>الاسم واللقب</th>
+                        <th>الرتبة/الوظيفة</th>
+                        <th>مكان العمل</th>
+                        <th>رقم الهاتف</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>تاريخ التعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    targetData.forEach((row, index) => {
+        // معالجة التواريخ لتظهر بشكل واضح
+        const regDate = window.fmtDateTime(row.date) !== '-' ? window.fmtDateTime(row.date) : (row.date || '');
+        const editDate = window.fmtDateTime(row.date_edit) !== '-' ? window.fmtDateTime(row.date_edit) : (row.date_edit || '');
+
+        tableContent += `
+            <tr>
+                <td style='mso-number-format:"\\@"; text-align:center;'>${index + 1}</td>
+                <td style='mso-number-format:"\\@";'>${row.ccp || ''}</td>
+                <td style='mso-number-format:"\\@";'>${row.fmn || ''} ${row.frn || ''}</td>
+                <td style='mso-number-format:"\\@";'>${row.job || ''} (${row.gr || ''})</td>
+                <td style='mso-number-format:"\\@";'>${row.schoolName || ''}</td>
+                <td style='mso-number-format:"\\@"; direction:ltr; text-align:right;'>${row.phone || ''}</td>
+                <td style='mso-number-format:"\\@"; direction:ltr; text-align:right;'>${regDate}</td>
+                <td style='mso-number-format:"\\@"; direction:ltr; text-align:right;'>${editDate}</td>
+            </tr>
+        `;
+    });
+
+    tableContent += `</tbody></table></body></html>`;
+
+    // تحويل النص إلى ملف قابل للتحميل
+    const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = fileName; // استخدام طريقة الدمج الآمنة التي أصلحناها سابقاً
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
 window.updateStats = function(data) {
