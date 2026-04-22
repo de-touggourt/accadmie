@@ -226,8 +226,8 @@ const SECURE_DASHBOARD_HTML = `
           <thead>
             <tr>
               <th>CCP</th>
-              <th>الاسم واللقب</th>
-              <th>الرتبة / الوظيفة</th>
+              <th>الاسم واللقب (عربي)</th>
+              <th>الاسم واللقب (لاتيني)</th> <th>الرتبة / الوظيفة</th>
               <th>مكان العمل</th>
               <th>رقم الهاتف</th>
               <th>الحالة</th>
@@ -236,7 +236,7 @@ const SECURE_DASHBOARD_HTML = `
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="8" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
+            <tr><td colspan="9" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
           </tbody>
         </table>
       </div>
@@ -251,7 +251,7 @@ const SECURE_DASHBOARD_HTML = `
 `;
 
 // --- المتغيرات العامة ---
-const scriptURL = "https://script.google.com/macros/s/AKfycbzKW_MjD27Sh9S6bW8BFltWqNLJalgXW2MgptxtgaxTEiwpDFUSY-hQFNFCtnEkGQFhig/exec"; 
+const scriptURL = "https://script.google.com/macros/s/AKfycbxiT-_239If_Cd0damO9jXfLQKWBpJt2G8oIDdyD-4snKdAQoJGW3vBj6gE9TBBl3b5_w/exec"; 
 
 // متغيرات البيانات والصفحات
 let allData = [];
@@ -674,7 +674,8 @@ window.renderTable = function(data) {
   tbody.innerHTML = "";
 
   if(data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
+    // تحديث colspan إلى 9
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
     return;
   }
 
@@ -694,21 +695,21 @@ window.renderTable = function(data) {
       </div>
     `;
 
-    // تحديد لون السطر بناءً على حالة التسجيل ونظام المتابعة
     const recordType = window.getRecordStatus(row);
     let rowBgColor = "";
-    
-    if (recordType === "new") {
-        rowBgColor = "background-color: #e8f5e9;"; // أخضر فاتح للجديد
-    } else if (recordType === "modified") {
-        rowBgColor = "background-color: #fff3cd;"; // برتقالي فاتح للمعدل
-    }
+    if (recordType === "new") rowBgColor = "background-color: #e8f5e9;"; 
+    else if (recordType === "modified") rowBgColor = "background-color: #fff3cd;";
 
     const tr = document.createElement("tr");
-    if (rowBgColor) tr.setAttribute("style", rowBgColor); // تطبيق اللون إذا وجد
+    if (rowBgColor) tr.setAttribute("style", rowBgColor);
+
+    // بناء الأسطر مع دمج العمودين اللاتينيين في خلية واحدة
     tr.innerHTML = `
       <td style="font-weight:700; font-family:'Cairo';">${row.ccp}</td>
-      <td>${row.fmn} ${row.frn}</td>
+      <td style="font-weight:600;">${row.fmn} ${row.frn}</td>
+      <td dir="ltr" style="text-align:left; text-transform:uppercase; color:#555; font-weight:600;">
+        ${row.fmn_la || ''} ${row.frn_la || ''}
+      </td>
       <td>${gradeJobHtml}</td>
       <td>${row.schoolName || '-'}</td>
       <td style="direction:ltr; text-align:right;">${row.phone}</td>
@@ -726,7 +727,6 @@ window.renderTable = function(data) {
     tbody.appendChild(tr);
   });
 };
-
 // بقية الدوال المساعدة ...
 window.saveToFirebaseDB = function(formData) {
     Swal.fire({ title: 'جاري الحفظ في Firestore...', didOpen: () => Swal.showLoading() });
