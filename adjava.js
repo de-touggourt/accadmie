@@ -227,7 +227,7 @@ const SECURE_DASHBOARD_HTML = `
             <tr>
               <th>CCP</th>
               <th>الاسم واللقب</th>
-              <th>الاسم واللقب باللاتينية</th> <th>الرتبة / الوظيفة</th>
+              <th>الرتبة / الوظيفة</th>
               <th>مكان العمل</th>
               <th>رقم الهاتف</th>
               <th>الحالة</th>
@@ -236,7 +236,7 @@ const SECURE_DASHBOARD_HTML = `
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="9" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
+            <tr><td colspan="8" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
           </tbody>
         </table>
       </div>
@@ -674,8 +674,7 @@ window.renderTable = function(data) {
   tbody.innerHTML = "";
 
   if(data.length === 0) {
-    // تم تغيير colspan إلى 9
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
     return;
   }
 
@@ -707,17 +706,14 @@ window.renderTable = function(data) {
 
     const tr = document.createElement("tr");
     if (rowBgColor) tr.setAttribute("style", rowBgColor); // تطبيق اللون إذا وجد
-    
-    // إضافة حقل fmn_la و frn_la بعد الاسم العربي مباشرة
-   tr.innerHTML = `
-  <td style="font-weight:700;">${row.ccp}</td>
-  <td>${row.fmn} ${row.frn}</td>
-  <td dir="ltr" style="text-align:left; text-transform:uppercase;">${row.fmn_la} ${row.frn_la}</td>
-  <td>${row.job} (${row.gr})</td>
-  <td>${row.schoolName}</td>
-  <td dir="ltr">${row.phone}</td>
-  <td>${statusBadge}</td>
-  <td>${window.fmtDate(row.date_edit)}</td>
+    tr.innerHTML = `
+      <td style="font-weight:700; font-family:'Cairo';">${row.ccp}</td>
+      <td>${row.fmn} ${row.frn}</td>
+      <td>${gradeJobHtml}</td>
+      <td>${row.schoolName || '-'}</td>
+      <td style="direction:ltr; text-align:right;">${row.phone}</td>
+      <td>${statusBadge}</td>
+      <td style="font-size:12px; font-weight:600;">${dateStr}</td>
       <td>
         <div class="actions-cell">
           <button class="action-btn btn-view" onclick="window.viewDetails(${originalIndex})" title="عرض التفاصيل"><i class="fas fa-eye"></i></button>
