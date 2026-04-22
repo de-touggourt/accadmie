@@ -143,7 +143,7 @@ const SECURE_DASHBOARD_HTML = `
     <div style="position:relative; flex-grow:1; display:flex; align-items:center; gap:10px;">
         <div style="position:relative; flex-grow:1;">
             <i class="fas fa-search" style="position:absolute; top:50%; right:15px; transform:translateY(-50%); color:#adb5bd;"></i>
-            <input type="text" id="searchInput" class="search-input" style="padding-right:40px;" placeholder="بحث سريع..." onkeyup="window.applyFilters()">
+            <input type="text" id="searchInput" class="search-input" style="padding-right:40px;" placeholder="بحث سريع..." oninput="window.applyFilters()">
         </div>
         <div id="searchCounter" style="background:#e9ecef; padding:8px 15px; border-radius:8px; font-weight:bold; color:#495057; font-size:13px; white-space:nowrap; border:1px solid #dee2e6;">
             النتائج: <span id="filteredCount">0</span>
@@ -2954,7 +2954,7 @@ window.showFirebaseEditorModal = async function() {
             <div style="direction:rtl; text-align:right; font-family:'Cairo';">
                 <div style="position:relative; margin-bottom:15px;">
                     <i class="fas fa-search" style="position:absolute; top:50%; right:15px; transform:translateY(-50%); color:#999;"></i>
-                    <input type="text" id="fbSearchInput" onkeyup="window.filterFirebaseTable()" 
+                    <input type="text" id="fbSearchInput" oninput="window.filterFirebaseTable()" 
                            placeholder="بحث سريع..." 
                            style="width:100%; padding:12px 40px 12px 10px; border:1px solid #ddd; border-radius:10px; outline:none; border:2px solid #3498db;">
                 </div>
@@ -3376,7 +3376,7 @@ window.openPermissionsModal = async function() {
                         
                         <div style="position:relative; margin-bottom:15px;">
                             <i class="fas fa-search" style="position:absolute; top:50%; right:12px; transform:translateY(-50%); color:#aaa; font-size:14px;"></i>
-                            <input type="text" id="search_schools_input" onkeyup="window.filterSchoolsList()" placeholder="بحث عن مؤسسة..." style="width:100%; padding:10px 35px 10px 10px; font-size:14px; border:1px solid #ced4da; border-radius:6px; font-family:'Cairo'; outline: none; transition:0.3s;" onfocus="this.style.borderColor='#3498db'">
+                            <input type="text" id="search_schools_input" oninput="window.filterSchoolsList()" placeholder="بحث عن مؤسسة..." style="width:100%; padding:10px 35px 10px 10px; font-size:14px; border:1px solid #ced4da; border-radius:6px; font-family:'Cairo'; outline: none; transition:0.3s;" onfocus="this.style.borderColor='#3498db'">
                         </div>
                         
                         <select id="perm_schools" multiple style="width: 100%; flex-grow: 1; min-height: 280px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-family: 'Cairo'; font-size:14px; font-weight:600; outline: none; background: #fff; line-height: 1.6;">
@@ -3408,7 +3408,7 @@ window.openPermissionsModal = async function() {
 
                         <div style="border:1px solid #ced4da; border-radius:6px; background:#fff; display: flex; flex-direction: column; max-height: 280px; overflow: hidden; margin-bottom: 15px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
                             <div style="padding:10px; background:#e9ecef; border-bottom:1px solid #ced4da;">
-                                <input type="text" id="search_ccp_input" onkeyup="window.filterPermittedTable()" placeholder="بحث بالاسم أو CCP..." style="width:100%; padding:10px; font-size:14px; border:1px solid #ced4da; border-radius:5px; font-family:'Cairo'; outline: none; transition:0.3s;" onfocus="this.style.borderColor='#e63946'">
+                                <input type="text" id="search_ccp_input" oninput="window.filterPermittedTable()" placeholder="بحث بالاسم أو CCP..." style="width:100%; padding:10px; font-size:14px; border:1px solid #ced4da; border-radius:5px; font-family:'Cairo'; outline: none; transition:0.3s;" onfocus="this.style.borderColor='#e63946'">
                             </div>
                             <div style="overflow-y:auto; overflow-x:hidden; flex-grow: 1;">
                                 <table style="width:100%; border-collapse:collapse; text-align:right;">
@@ -3492,30 +3492,39 @@ window.removePermittedCcp = function(btn) {
 // 🔍 دوال البحث داخل نافذة التراخيص
 // ==========================================
 
-// 1. دالة البحث في قائمة المؤسسات
+// 1. دالة البحث في قائمة المؤسسات (مجهزة لتدعم Safari والهواتف)
 window.filterSchoolsList = function() {
     const input = document.getElementById("search_schools_input");
     if (!input) return;
+    
     const filter = input.value.toLowerCase();
     const select = document.getElementById("perm_schools");
     if (!select) return;
+    
     const options = select.getElementsByTagName("option");
 
     for (let i = 0; i < options.length; i++) {
         const textValue = options[i].textContent || options[i].innerText;
-        // إذا كان النص يطابق البحث نظهره، وإلا نخفيه
+        
         if (textValue.toLowerCase().includes(filter)) {
+            // إظهار الخيار
             options[i].style.display = "";
+            options[i].hidden = false;
+            options[i].disabled = false; // تفعيل الخيار مجدداً
         } else {
+            // إخفاء الخيار بطريقة صارمة تجبر سفاري على تجاهله
             options[i].style.display = "none";
+            options[i].hidden = true;
+            options[i].disabled = true; // خاصية الإيقاف تمنع سفاري من عرضه
         }
     }
 };
 
-// 2. دالة البحث في جدول الحسابات (بالاسم أو CCP)
+// 2. دالة البحث في جدول الحسابات (تعمل بسلاسة على كل المتصفحات لأنها تبحث في سطور جدول tr وليس option)
 window.filterPermittedTable = function() {
     const input = document.getElementById("search_ccp_input");
     if (!input) return;
+    
     const filter = input.value.toLowerCase();
     const rows = document.getElementsByClassName("perm-ccp-row");
 
@@ -3530,7 +3539,6 @@ window.filterPermittedTable = function() {
         }
     }
 };
-
 // دالة تفريغ كل المؤسسات المحددة
 window.clearAllSchools = function() {
     const select = document.getElementById('perm_schools');
