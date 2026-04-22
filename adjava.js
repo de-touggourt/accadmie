@@ -227,6 +227,7 @@ const SECURE_DASHBOARD_HTML = `
             <tr>
               <th>CCP</th>
               <th>الاسم واللقب</th>
+              <th>الاسم واللقب (لاتينية)</th>
               <th>الرتبة / الوظيفة</th>
               <th>مكان العمل</th>
               <th>رقم الهاتف</th>
@@ -236,7 +237,7 @@ const SECURE_DASHBOARD_HTML = `
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="8" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
+            <tr><td colspan="9" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
           </tbody>
         </table>
       </div>
@@ -251,7 +252,7 @@ const SECURE_DASHBOARD_HTML = `
 `;
 
 // --- المتغيرات العامة ---
-const scriptURL = "https://script.google.com/macros/s/AKfycbxiT-_239If_Cd0damO9jXfLQKWBpJt2G8oIDdyD-4snKdAQoJGW3vBj6gE9TBBl3b5_w/exec"; 
+const scriptURL = "https://script.google.com/macros/s/AKfycbzKW_MjD27Sh9S6bW8BFltWqNLJalgXW2MgptxtgaxTEiwpDFUSY-hQFNFCtnEkGQFhig/exec"; 
 
 // متغيرات البيانات والصفحات
 let allData = [];
@@ -554,9 +555,10 @@ document.getElementById("adminPass").addEventListener("keypress", function(event
 
 // 2. دوال البيانات والفلترة والصفحات
 window.loadData = async function() {
+
   const tbody = document.getElementById("tableBody");
   if(!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--primary-color);"><i class="fas fa-circle-notch fa-spin fa-2x"></i><br>جاري الاتصال بقاعدة البيانات...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--primary-color);"><i class="fas fa-circle-notch fa-spin fa-2x"></i><br>جاري الاتصال بقاعدة البيانات...</td></tr>';
   
   try {
     const response = await fetch(scriptURL + "?action=read_all");
@@ -587,9 +589,12 @@ window.applyFilters = function() {
 
     filteredData = allData.filter(row => {
         // 1. بحث النص
+       
         const matchesSearch = (
             (row.fmn && row.fmn.includes(query)) ||
             (row.frn && row.frn.includes(query)) ||
+            (row.fmn_la && row.fmn_la.toLowerCase().includes(query)) ||
+            (row.frn_la && row.frn_la.toLowerCase().includes(query)) ||
             (row.ccp && String(row.ccp).includes(query)) ||
             (row.phone && String(row.phone).replace(/\s/g,'').includes(query)) || 
             (row.schoolName && row.schoolName.includes(query))
@@ -674,7 +679,7 @@ window.renderTable = function(data) {
   tbody.innerHTML = "";
 
   if(data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
     return;
   }
 
@@ -709,6 +714,7 @@ window.renderTable = function(data) {
     tr.innerHTML = `
       <td style="font-weight:700; font-family:'Cairo';">${row.ccp}</td>
       <td>${row.fmn} ${row.frn}</td>
+      <td style="font-weight:normal; text-transform:uppercase;">${row.fmn_la || ''} ${row.frn_la || ''}</td>
       <td>${gradeJobHtml}</td>
       <td>${row.schoolName || '-'}</td>
       <td style="direction:ltr; text-align:right;">${row.phone}</td>
