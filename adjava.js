@@ -595,25 +595,48 @@ window.applyFilters = function() {
             (row.schoolName && row.schoolName.includes(query))
         );
 
-       // 2. فلتر الحالة (مؤكد/غير مؤكد/جديد/معدل/قديم)
         let matchesStatus = true;
         const isConfirmed = String(row.confirmed).toLowerCase() === "true";
-        const recordType = window.getRecordStatus(row);
+        const recordType = window.getRecordStatus(row); // نتركه هنا لأنه يُستخدم للسجلات القديمة والتلوين
 
+        // ==========================================
+        // 2. فلتر الحالة (المنطق الجديد المحسن)
+        // ==========================================
         if (statusFilter === "confirmed") {
             matchesStatus = isConfirmed;
         } else if (statusFilter === "pending") {
             matchesStatus = !isConfirmed;
         } else if (statusFilter === "new") {
-            matchesStatus = (recordType === "new");
+            // التسجيلات الجديدة: إظهار كل من سجل بعد تاريخ المراقبة (حتى لو قام بالتعديل لاحقاً)
+            if (window.followUpStartDate) {
+                const followDate = new Date(window.followUpStartDate);
+                followDate.setHours(0, 0, 0, 0); 
+                const followTime = followDate.getTime();
+                const regTime = window.getSafeTimestamp(row.date);
+                
+                matchesStatus = (regTime >= followTime);
+            } else {
+                matchesStatus = false; // لا توجد متابعة نشطة
+            }
         } else if (statusFilter === "modified") {
-            matchesStatus = (recordType === "modified");
+            // السجلات المعدلة: إظهار من قام بالتعديل فعلياً بعد تاريخ المراقبة
+            if (window.followUpStartDate) {
+                const followDate = new Date(window.followUpStartDate);
+                followDate.setHours(0, 0, 0, 0); 
+                const followTime = followDate.getTime();
+                const regTime = window.getSafeTimestamp(row.date);
+                const editTime = window.getSafeTimestamp(row.date_edit);
+                
+                matchesStatus = (editTime >= followTime && editTime > regTime + 120000);
+            } else {
+                matchesStatus = false;
+            }
         } else if (statusFilter === "old") {
+            // السجلات القديمة
             matchesStatus = (recordType === "old");
         }
 
-        // 3. 🆕 الفلاتر الجديدة (الطور، الدائرة، البلدية، المؤسسة)
-        // التحقق فقط إذا كان الفلتر له قيمة (ليس فارغاً)
+        // 3. الفلاتر المكانية والمهنية
         const matchesLevel = fLevel === "" || row.level === fLevel;
         const matchesDaaira = fDaaira === "" || row.daaira === fDaaira;
         const matchesBaladiya = fBaladiya === "" || row.baladiya === fBaladiya;
@@ -622,9 +645,10 @@ window.applyFilters = function() {
         return matchesSearch && matchesStatus && matchesLevel && matchesDaaira && matchesBaladiya && matchesSchool;
     });
 
-  document.getElementById("filteredCount").innerText = filteredData.length;
+    document.getElementById("filteredCount").innerText = filteredData.length;
     currentPage = 1;
     window.renderCurrentPage();
+
     
     // تحديث العدادات بناءً على الفلترة الحالية (اختياري - ليعرف المستخدم عدد النتائج المفلترة)
     // window.updateStats(filteredData); // يمكنك تفعيل هذا السطر إذا أردت العدادات تتغير مع الفلتر
