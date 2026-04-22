@@ -263,31 +263,32 @@ let nonRegisteredData = [];
 
 
 // دالة ذكية لقراءة التواريخ وتحويلها بدقة (تدعم التنسيق الجزائري DD-MM-YYYY)
+// دالة ذكية لقراءة التواريخ وتحويلها بدقة (تدعم جميع المتصفحات وتوقيت السيرفر الجديد)
 window.getSafeTimestamp = function(dateValue) {
     if (!dateValue) return 0;
-    
-    // إذا كان كائن Date أصلاً
     if (dateValue instanceof Date) return dateValue.getTime();
-    
-    // إذا كان رقماً (Timestamp)
     if (typeof dateValue === 'number') return dateValue;
 
     if (typeof dateValue === 'string') {
         let cleanDate = dateValue.trim();
         
-        // محاولة اكتشاف التنسيق DD-MM-YYYY أو DD/MM/YYYY (مع أو بدون وقت)
+        // 💡 الإصلاح الأساسي: تحويل المسافة إلى حرف T لكي تقرأه جميع المتصفحات بدون خطأ
+        // من: 2026-04-22 14:30:00  إلى: 2026-04-22T14:30:00
+        cleanDate = cleanDate.replace(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$/, '$1T$2');
+        
+        // محاولة اكتشاف التنسيق DD-MM-YYYY أو DD/MM/YYYY
         const regexDDMMYYYY = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:\s+(.*))?$/;
         const match = cleanDate.match(regexDDMMYYYY);
         
         if (match) {
             const day = parseInt(match[1], 10);
-            const month = parseInt(match[2], 10) - 1; // الأشهر تبدأ من 0 برمجياً
+            const month = parseInt(match[2], 10) - 1; 
             const year = parseInt(match[3], 10);
             
             // معالجة الوقت إن وجد
             let hours = 0, minutes = 0, seconds = 0;
             if (match[4]) {
-                const timeParts = match[4].split(':');
+                const timeParts = match[4].replace('T', ' ').split(':'); // دعم الـ T هنا أيضاً
                 if (timeParts.length >= 1) hours = parseInt(timeParts[0], 10) || 0;
                 if (timeParts.length >= 2) minutes = parseInt(timeParts[1], 10) || 0;
                 if (timeParts.length >= 3) seconds = parseInt(timeParts[2], 10) || 0;
@@ -296,14 +297,13 @@ window.getSafeTimestamp = function(dateValue) {
             return new Date(year, month, day, hours, minutes, seconds).getTime();
         }
 
-        // المحاولة الافتراضية للأنظمة الأخرى (مثل YYYY-MM-DD)
+        // المحاولة الافتراضية للأنظمة الأخرى
         const parsed = new Date(cleanDate).getTime();
         if (!isNaN(parsed)) return parsed;
     }
     
-    return 0; // إرجاع صفر إذا فشل كل شيء بدلاً من تعطل النظام
+    return 0; 
 };
-
 // ==========================================
 // --- متغيرات ودوال نظام المتابعة وتحديد حالة السجل ---
 // ==========================================
@@ -579,7 +579,6 @@ window.applyFilters = function() {
     const query = document.getElementById("searchInput").value.toLowerCase();
     const statusFilter = document.getElementById("statusFilter").value;
     
-    // جلب قيم الفلاتر الجديدة
     const fLevel = document.getElementById("filter_level").value;
     const fDaaira = document.getElementById("filter_daaira").value;
     const fBaladiya = document.getElementById("filter_baladiya").value;
@@ -597,33 +596,37 @@ window.applyFilters = function() {
 
         let matchesStatus = true;
         const isConfirmed = String(row.confirmed).toLowerCase() === "true";
-        const recordType = window.getRecordStatus(row); // نتركه هنا لأنه يُستخدم للسجلات القديمة والتلوين
+        const recordType = window.getRecordStatus(row); 
 
         // ==========================================
-        // 2. فلتر الحالة (المنطق الجديد المحسن)
+        // 2. فلتر الحالة (المنطق الذي طلبته بالضبط)
         // ==========================================
         if (statusFilter === "confirmed") {
             matchesStatus = isConfirmed;
         } else if (statusFilter === "pending") {
             matchesStatus = !isConfirmed;
         } else if (statusFilter === "new") {
-            // التسجيلات الجديدة: إظهار كل من سجل بعد تاريخ المراقبة (حتى لو قام بالتعديل لاحقاً)
+            // التسجيلات الجديدة: إظهار أي نشاط جديد (تسجيل أو تعديل) بعد تاريخ المراقبة
             if (window.followUpStartDate) {
                 const followDate = new Date(window.followUpStartDate);
                 followDate.setHours(0, 0, 0, 0); 
                 const followTime = followDate.getTime();
-                const regTime = window.getSafeTimestamp(row.date);
                 
-                matchesStatus = (regTime >= followTime);
+                const regTime = window.getSafeTimestamp(row.date);
+                const editTime = window.getSafeTimestamp(row.date_edit);
+                
+                // يكفي أن يكون التسجيل أو التعديل قد تم بعد تاريخ المراقبة
+                matchesStatus = (regTime >= followTime) || (editTime >= followTime);
             } else {
-                matchesStatus = false; // لا توجد متابعة نشطة
+                matchesStatus = false;
             }
         } else if (statusFilter === "modified") {
-            // السجلات المعدلة: إظهار من قام بالتعديل فعلياً بعد تاريخ المراقبة
+            // السجلات المعدلة: إظهار من قام بالتعديل فعلياً فقط
             if (window.followUpStartDate) {
                 const followDate = new Date(window.followUpStartDate);
                 followDate.setHours(0, 0, 0, 0); 
                 const followTime = followDate.getTime();
+                
                 const regTime = window.getSafeTimestamp(row.date);
                 const editTime = window.getSafeTimestamp(row.date_edit);
                 
@@ -632,7 +635,6 @@ window.applyFilters = function() {
                 matchesStatus = false;
             }
         } else if (statusFilter === "old") {
-            // السجلات القديمة
             matchesStatus = (recordType === "old");
         }
 
