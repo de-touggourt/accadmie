@@ -4032,3 +4032,71 @@ window.printUnmodifiedPermissionsReport = function() {
     `);
     printWindow.document.close();
 };
+
+// دالة استخراج قائمة الحسابات المرخصة (CCP) إلى ملف Excel
+window.exportPermittedExcel = function() {
+    const rows = document.querySelectorAll('.perm-ccp-row');
+
+    if (rows.length === 0) {
+        Swal.fire('تنبيه', 'لا توجد حسابات مرخصة حالياً لتحميلها.', 'info');
+        return;
+    }
+
+    // تجهيز هيكل ملف Excel مع دعم اللغة العربية وتنسيق النصوص
+    let tableContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                /* إجبار الخلايا على أن تكون نصاً للحفاظ على الأصفار في الـ CCP */
+                td.text-cell { mso-number-format:"\\@"; } 
+                table { border-collapse: collapse; width: 100%; font-family: 'Arial', sans-serif; }
+                th { background-color: #2c3e50; color: #ffffff; font-weight: bold; border: 1px solid #dddddd; padding: 10px; text-align: center; }
+                td { border: 1px solid #dddddd; padding: 8px; text-align: right; }
+            </style>
+        </head>
+        <body dir="rtl">
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم الحساب (CCP)</th>
+                        <th>الاسم واللقب</th>
+                        <th>المؤسسة</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    // المرور على جميع الأسطر في جدول التراخيص لاستخراج البيانات
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        // الخلايا: 0=CCP, 1=الاسم، 2=المؤسسة، 3=زر الحذف (نتجاهله)
+        const ccp = cells[0].innerText.trim();
+        const name = cells[1].innerText.trim();
+        const school = cells[2].innerText.trim();
+
+        tableContent += `
+            <tr>
+                <td class="text-cell">${ccp}</td>
+                <td class="text-cell">${name}</td>
+                <td class="text-cell">${school}</td>
+            </tr>
+        `;
+    });
+
+    tableContent += `</tbody></table></body></html>`;
+
+    // تحويل النص إلى ملف قابل للتحميل
+    const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    
+    // إنشاء اسم الملف مع تاريخ اليوم
+    const dateStr = new Date().toISOString().slice(0,10);
+    link.download = \`قائمة_الحسابات_المرخصة_\${dateStr}.xls\`;
+    
+    // بدء التحميل
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
