@@ -819,33 +819,42 @@ window.downloadFullDatabaseExcel = async function() {
 // =================================================================
 // 2. الدالة الرئيسية المرتبطة بالزر (نافذة الخيارات الجديدة)
 // =================================================================
+// =================================================================
+// 2. الدالة الرئيسية المرتبطة بالزر (نافذة الخيارات المنسقة)
+// =================================================================
 window.downloadExcel = function() {
     Swal.fire({
-        title: '<strong>خيارات استخراج Excel</strong>',
+        title: '<strong style="font-family:\'Cairo\';">خيارات استخراج Excel</strong>',
         html: `
-            <div style="display: flex; flex-direction: column; gap: 15px; padding: 10px; font-family: 'Cairo', sans-serif;">
+            <div style="display: flex; flex-direction: column; gap: 12px; padding: 5px; font-family: 'Cairo', sans-serif;">
                 
-                <button onclick="Swal.close(); window.downloadFullDatabaseExcel()" class="btn" style="background-color: #198754; color: white; padding: 15px; font-size: 16px; border-radius: 8px; display: flex; align-items: center; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.3s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                    <i class="fas fa-database fa-2x"></i> 
-                    <div style="text-align: right; flex-grow: 1;">
-                        <strong style="font-size: 17px;">تحميل قاعدة البيانات بالكامل</strong>
-                        <div style="font-size: 12px; opacity: 0.9;">تصدير جميع الموظفين من الخادم مباشرة (ملف أصلي)</div>
+                <button onclick="Swal.close(); window.downloadFullDatabaseExcel()" style="background-color: #198754; color: white; padding: 12px 15px; border-radius: 8px; display: flex; align-items: center; justify-content: flex-start; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="flex-shrink: 0; width: 45px; text-align: center;">
+                        <i class="fas fa-database fa-2x"></i> 
+                    </div>
+                    <div style="text-align: right; flex-grow: 1; line-height: 1.5;">
+                        <div style="font-size: 16px; font-weight: bold; margin-bottom: 3px;">تحميل قاعدة البيانات بالكامل</div>
+                        <div style="font-size: 12px; opacity: 0.9; white-space: normal;">تصدير جميع الموظفين من الخادم مباشرة (ملف أصلي)</div>
                     </div>
                 </button>
 
-                <button onclick="Swal.close(); window.downloadFilteredExcel('new')" class="btn" style="background-color: #0d6efd; color: white; padding: 15px; font-size: 16px; border-radius: 8px; display: flex; align-items: center; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.3s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                    <i class="fas fa-user-plus fa-2x"></i> 
-                    <div style="text-align: right; flex-grow: 1;">
-                        <strong style="font-size: 17px;">تحميل التسجيلات الجديدة</strong>
-                        <div style="font-size: 12px; opacity: 0.9;">من سجلوا بعد تفعيل نظام المتابعة</div>
+                <button onclick="Swal.close(); window.downloadFilteredExcel('new')" style="background-color: #0d6efd; color: white; padding: 12px 15px; border-radius: 8px; display: flex; align-items: center; justify-content: flex-start; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="flex-shrink: 0; width: 45px; text-align: center;">
+                        <i class="fas fa-user-plus fa-2x"></i> 
+                    </div>
+                    <div style="text-align: right; flex-grow: 1; line-height: 1.5;">
+                        <div style="font-size: 16px; font-weight: bold; margin-bottom: 3px;">تحميل التسجيلات الجديدة</div>
+                        <div style="font-size: 12px; opacity: 0.9; white-space: normal;">الموظفون الذين سجلوا بعد تفعيل نظام المتابعة</div>
                     </div>
                 </button>
 
-                <button onclick="Swal.close(); window.downloadFilteredExcel('modified')" class="btn" style="background-color: #fd7e14; color: white; padding: 15px; font-size: 16px; border-radius: 8px; display: flex; align-items: center; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.3s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                    <i class="fas fa-user-edit fa-2x"></i> 
-                    <div style="text-align: right; flex-grow: 1;">
-                        <strong style="font-size: 17px;">تحميل السجلات المعدلة</strong>
-                        <div style="font-size: 12px; opacity: 0.9;">الموظفون الذين قاموا بتعديل بياناتهم مؤخراً</div>
+                <button onclick="Swal.close(); window.downloadFilteredExcel('modified')" style="background-color: #fd7e14; color: white; padding: 12px 15px; border-radius: 8px; display: flex; align-items: center; justify-content: flex-start; gap: 15px; width: 100%; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="flex-shrink: 0; width: 45px; text-align: center;">
+                        <i class="fas fa-user-edit fa-2x"></i> 
+                    </div>
+                    <div style="text-align: right; flex-grow: 1; line-height: 1.5;">
+                        <div style="font-size: 16px; font-weight: bold; margin-bottom: 3px;">تحميل السجلات المعدلة</div>
+                        <div style="font-size: 12px; opacity: 0.9; white-space: normal;">الموظفون الذين قاموا بتعديل بياناتهم مؤخراً</div>
                     </div>
                 </button>
 
@@ -853,11 +862,9 @@ window.downloadExcel = function() {
         `,
         showConfirmButton: false,
         showCloseButton: true,
-        width: '550px',
-        customClass: { popup: 'swal-wide' }
+        width: '500px'
     });
 };
-
 // =================================================================
 // 3. دالة الاستخراج السريع للتسجيلات الجديدة والمعدلة
 // =================================================================
