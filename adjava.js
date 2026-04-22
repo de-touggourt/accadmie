@@ -709,15 +709,15 @@ window.renderTable = function(data) {
     if (rowBgColor) tr.setAttribute("style", rowBgColor); // تطبيق اللون إذا وجد
     
     // إضافة حقل fmn_la و frn_la بعد الاسم العربي مباشرة
-    tr.innerHTML = `
-      <td style="font-weight:700; font-family:'Cairo';">${row.ccp}</td>
-      <td>${row.fmn} ${row.frn}</td>
-      <td dir="ltr" style="text-align:left; font-weight:600; text-transform:uppercase;">${row.fmn_la || ''} ${row.frn_la || ''}</td>
-      <td>${gradeJobHtml}</td>
-      <td>${row.schoolName || '-'}</td>
-      <td style="direction:ltr; text-align:right;">${row.phone}</td>
-      <td>${statusBadge}</td>
-      <td style="font-size:12px; font-weight:600;">${dateStr}</td>
+   tr.innerHTML = `
+  <td style="font-weight:700;">${row.ccp}</td>
+  <td>${row.fmn} ${row.frn}</td>
+  <td dir="ltr" style="text-align:left; text-transform:uppercase;">${row.fmn_la} ${row.frn_la}</td>
+  <td>${row.job} (${row.gr})</td>
+  <td>${row.schoolName}</td>
+  <td dir="ltr">${row.phone}</td>
+  <td>${statusBadge}</td>
+  <td>${window.fmtDate(row.date_edit)}</td>
       <td>
         <div class="actions-cell">
           <button class="action-btn btn-view" onclick="window.viewDetails(${originalIndex})" title="عرض التفاصيل"><i class="fas fa-eye"></i></button>
