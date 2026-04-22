@@ -228,6 +228,7 @@ const SECURE_DASHBOARD_HTML = `
               <th>CCP</th>
               <th>الاسم واللقب</th>
               <th>الاسم واللقب (لاتينية)</th>
+              <th>تاريخ الميلاد</th>
               <th>الرتبة / الوظيفة</th>
               <th>مكان العمل</th>
               <th>رقم الهاتف</th>
@@ -237,7 +238,7 @@ const SECURE_DASHBOARD_HTML = `
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="9" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
+            <tr><td colspan="10" style="text-align:center; padding:30px;">جاري تحميل البيانات...</td></tr>
           </tbody>
         </table>
       </div>
@@ -558,7 +559,7 @@ window.loadData = async function() {
 
   const tbody = document.getElementById("tableBody");
   if(!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--primary-color);"><i class="fas fa-circle-notch fa-spin fa-2x"></i><br>جاري الاتصال بقاعدة البيانات...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--primary-color);"><i class="fas fa-circle-notch fa-spin fa-2x"></i><br>جاري الاتصال بقاعدة البيانات...</td></tr>';
   
   try {
     const response = await fetch(scriptURL + "?action=read_all");
@@ -679,7 +680,7 @@ window.renderTable = function(data) {
   tbody.innerHTML = "";
 
   if(data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">لا توجد سجلات مطابقة للبحث</td></tr>';
     return;
   }
 
@@ -691,6 +692,7 @@ window.renderTable = function(data) {
       : `<span class="badge badge-pending"><i class="fas fa-clock"></i> غير مؤكد</span>`;
 
     let dateStr = window.fmtDate(row.date_edit);
+    let dobStr = window.fmtDate(row.diz); // استخراج وتنسيق تاريخ الميلاد
 
     const gradeJobHtml = `
       <div class="grade-job-cell">
@@ -704,22 +706,25 @@ window.renderTable = function(data) {
     let rowBgColor = "";
     
     if (recordType === "new") {
-        rowBgColor = "background-color: #e8f5e9;"; // أخضر فاتح للجديد
+        rowBgColor = "background-color: #e8f5e9;";
     } else if (recordType === "modified") {
-        rowBgColor = "background-color: #fff3cd;"; // برتقالي فاتح للمعدل
+        rowBgColor = "background-color: #fff3cd;";
     }
 
     const tr = document.createElement("tr");
-    if (rowBgColor) tr.setAttribute("style", rowBgColor); // تطبيق اللون إذا وجد
+    if (rowBgColor) tr.setAttribute("style", rowBgColor);
+    
+    // ترتيب الخلايا (td) حسب طلبك بالضبط
     tr.innerHTML = `
       <td style="font-weight:700; font-family:'Cairo';">${row.ccp}</td>
-      <td>${row.fmn} ${row.frn}</td>
+      <td style="font-weight:bold;">${row.fmn} ${row.frn}</td>
       <td style="font-weight:normal; text-transform:uppercase;">${row.fmn_la || ''} ${row.frn_la || ''}</td>
+      <td style="direction:ltr;">${dobStr}</td>
       <td>${gradeJobHtml}</td>
       <td>${row.schoolName || '-'}</td>
       <td style="direction:ltr; text-align:right;">${row.phone}</td>
       <td>${statusBadge}</td>
-      <td style="font-size:12px; font-weight:600;">${dateStr}</td>
+      <td style="font-size:12px; font-weight:600; direction:ltr;">${dateStr}</td>
       <td>
         <div class="actions-cell">
           <button class="action-btn btn-view" onclick="window.viewDetails(${originalIndex})" title="عرض التفاصيل"><i class="fas fa-eye"></i></button>
